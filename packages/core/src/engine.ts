@@ -1,5 +1,6 @@
 // Engine factory and interface. See docs/engine-contract.md sections 2 and 10.
 
+import { detectFormat as detectFormatImpl } from "./format-detect.js";
 import type {
   EngineConfig,
   FormatDetection,
@@ -19,8 +20,7 @@ export interface Engine {
 }
 
 const NOT_IMPLEMENTED =
-  "Phase 1 step in progress: API surface only. " +
-  "redact() and detectFormat() ship in subsequent steps.";
+  "Phase 1 step in progress: redact() ships in subsequent steps.";
 
 /**
  * Create a new engine instance. Each instance owns one session's worth of state
@@ -35,8 +35,8 @@ export function createEngine(_config?: EngineConfig): Engine {
     async redact(_input, _options) {
       throw new Error(NOT_IMPLEMENTED);
     },
-    async detectFormat(_input) {
-      throw new Error(NOT_IMPLEMENTED);
+    async detectFormat(input) {
+      return detectFormatImpl(input);
     },
     reset() {
       // No state to clear yet; subsequent steps will populate session bindings here.
