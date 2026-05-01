@@ -310,6 +310,45 @@ button {
   border-bottom: 1px solid var(--border);
 }
 
+.scratchpad-pane-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 4px 14px;
+  min-height: 26px;
+}
+
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.view-toggle-btn {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  color: var(--text-3);
+  border-right: 1px solid var(--border-2);
+  transition: background 0.12s, color 0.12s;
+}
+
+.view-toggle-btn:last-child {
+  border-right: none;
+}
+
+.view-toggle-btn:hover {
+  color: var(--text-2);
+}
+
+.view-toggle-btn.is-active {
+  background: var(--surface);
+  color: var(--accent);
+}
+
 .scratchpad-editor-wrap {
   flex: 1;
   min-height: 0;
@@ -554,6 +593,190 @@ button {
 }
 
 .finding-replacement-removed {
+  color: var(--text-3);
+  font-style: italic;
+}
+
+/* ========== Token tree view ========== */
+.tree-view {
+  height: 100%;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 6px 0 12px;
+}
+
+.tree-view::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.tree-view::-webkit-scrollbar-thumb {
+  background: var(--border-2);
+  border-radius: 3px;
+}
+
+.tree-empty {
+  padding: 24px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-3);
+  font-style: italic;
+}
+
+.tree-row {
+  font-family: var(--font-mono);
+}
+
+.tree-row-leaf {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  padding-right: 12px;
+  min-width: 0;
+}
+
+.tree-row-leaf:hover {
+  background: var(--surface);
+}
+
+.tree-row-branch > .tree-row-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  padding-right: 12px;
+  cursor: pointer;
+  list-style: none;
+  min-width: 0;
+}
+
+.tree-row-branch > .tree-row-summary::-webkit-details-marker {
+  display: none;
+}
+
+.tree-row-branch > .tree-row-summary::before {
+  content: "▶";
+  font-size: 8px;
+  color: var(--text-3);
+  width: 10px;
+  flex-shrink: 0;
+  transition: transform 0.12s;
+}
+
+.tree-row-branch[open] > .tree-row-summary::before {
+  transform: rotate(90deg);
+}
+
+.tree-row-branch > .tree-row-summary:hover {
+  background: var(--surface);
+}
+
+.tree-children {
+  border-left: 1px solid var(--border);
+  margin-left: 18px;
+}
+
+.tree-kind {
+  flex-shrink: 0;
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  color: var(--text-3);
+  border: 1px solid var(--border-2);
+}
+
+.tree-kind-segment,
+.tree-kind-element {
+  background: var(--blue-soft);
+  color: var(--blue);
+  border-color: rgba(78, 142, 247, 0.3);
+}
+
+.tree-label {
+  flex-shrink: 0;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 11px;
+}
+
+.tree-childcount {
+  color: var(--text-3);
+  font-size: 10px;
+  font-style: italic;
+  margin-left: 4px;
+}
+
+.tree-childcount::before {
+  content: "(";
+}
+.tree-childcount::after {
+  content: ")";
+}
+
+.tree-cat {
+  flex-shrink: 0;
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  border: 1px solid var(--border-2);
+}
+
+.tree-cat-name,
+.tree-cat-id {
+  background: var(--blue-soft);
+  color: var(--blue);
+  border-color: rgba(78, 142, 247, 0.3);
+}
+.tree-cat-address,
+.tree-cat-geo {
+  background: rgba(245, 166, 35, 0.12);
+  color: var(--amber);
+  border-color: rgba(245, 166, 35, 0.3);
+}
+.tree-cat-phone,
+.tree-cat-email,
+.tree-cat-url {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: rgba(0, 200, 160, 0.3);
+}
+.tree-cat-biometric,
+.tree-cat-photo {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--red);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.tree-value {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tree-value-redacted {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.tree-value-removed {
+  color: var(--text-3);
+  font-style: italic;
+}
+
+.tree-value-empty {
   color: var(--text-3);
   font-style: italic;
 }

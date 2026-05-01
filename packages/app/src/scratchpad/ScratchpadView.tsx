@@ -3,8 +3,11 @@ import { createEngine } from "@paste7/core";
 import type { Engine, Finding, RedactResult } from "@paste7/core";
 import { Editor } from "../shared/monaco.js";
 import { FindingsPanel } from "./FindingsPanel.js";
+import { TokenTreeView } from "./TokenTreeView.js";
 
 const NO_FINDINGS: ReadonlyArray<Finding> = [];
+
+type RedactedView = "raw" | "tree";
 
 type RedactState =
   | { status: "idle" }
@@ -26,6 +29,7 @@ export function ScratchpadView() {
   const [input, setInput] = useState<string>("");
   const debouncedInput = useDebouncedValue(input, 250);
   const [redactState, setRedactState] = useState<RedactState>({ status: "idle" });
+  const [redactedView, setRedactedView] = useState<RedactedView>("raw");
 
   useEffect(() => {
     if (debouncedInput.trim() === "") {
@@ -79,15 +83,45 @@ export function ScratchpadView() {
           </section>
 
           <section className="scratchpad-pane">
-            <div className="scratchpad-pane-label">Redacted</div>
+            <div className="scratchpad-pane-label scratchpad-pane-label-row">
+              <span>Redacted</span>
+              <div className="view-toggle">
+                <button
+                  type="button"
+                  className={"view-toggle-btn" + (redactedView === "raw" ? " is-active" : "")}
+                  onClick={() => setRedactedView("raw")}
+                >
+                  Raw
+                </button>
+                <button
+                  type="button"
+                  className={"view-toggle-btn" + (redactedView === "tree" ? " is-active" : "")}
+                  onClick={() => setRedactedView("tree")}
+                >
+                  Tree
+                </button>
+              </div>
+            </div>
             <div className="scratchpad-editor-wrap">
-              <Editor
-                height="100%"
-                language="plaintext"
-                theme="vs-dark"
-                value={redactedText}
-                options={{ ...EDITOR_OPTIONS, readOnly: true }}
-              />
+              {redactedView === "raw" ? (
+                <Editor
+                  height="100%"
+                  language="plaintext"
+                  theme="vs-dark"
+                  value={redactedText}
+                  options={{ ...EDITOR_OPTIONS, readOnly: true }}
+                />
+              ) : redactState.status === "ok" ? (
+                <TokenTreeView tree={redactState.result.tree} />
+              ) : (
+                <div className="tree-empty">
+                  {redactState.status === "redacting"
+                    ? "Redacting…"
+                    : redactState.status === "error"
+                      ? redactState.message
+                      : "Paste content to see the tokenized tree."}
+                </div>
+              )}
             </div>
           </section>
         </div>
