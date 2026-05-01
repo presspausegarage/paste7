@@ -16,7 +16,9 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json"
   },
-  "dependencies": {},
+  "dependencies": {
+    "fast-xml-parser": "^4.5.6"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "fast-check": "^3.23.0",
