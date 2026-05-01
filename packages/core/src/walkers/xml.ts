@@ -58,6 +58,10 @@ const parser = new XMLParser({
   attributeNamePrefix: ATTR_PREFIX,
   preserveOrder: true,
   parseAttributeValue: false,
+  // parseTagValue defaults to true; that coerces <postalCode>00001</postalCode>
+  // to the number 1, losing leading zeros and breaking shape-driven redaction.
+  // Element text must stay as the original string.
+  parseTagValue: false,
   trimValues: false,
   // Security-relevant: never parse external entities. fast-xml-parser does not
   // resolve external DTDs, but be explicit.
