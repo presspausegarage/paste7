@@ -8,8 +8,8 @@ Handoff notes for picking this project back up.
 
 - **What**: Tauri 2 + React + Monaco desktop scratchpad. Three workflows: Scratchpad (paste-and-redact for HL7 v2 / v3 / CDA / FHIR), DICOM SR (file-drop SR-header redaction; SR-only after the 2026-05-01 rescope), and HL7-viewer OCR (image paste/drop → Windows.Media.Ocr → HL7 normalization → existing HL7 v2 walker; Phase 6).
 - **Where**: [github.com/presspausegarage/paste7](https://github.com/presspausegarage/paste7) — public, MIT.
-- **State at handoff (2026-05-01)**: Rescoped from `health-integrate`. PS360 Template Mapper + String Gen + Tool Launcher + Terminal stripped. Tauri/Vite/Monaco scaffold survives. Phase 1 engine 5/7 steps complete: API, format detector, walkers (hl7v2/json/xml), identity pool + redactor, bundled rule packs. `createEngine()` with no config now redacts across all five formats out of the box. 130 tests green. Both workflow views are still placeholders.
-- **Next**: Phase 1 step 6 — label dictionary integration (cosmetic; pulls in hl7-dictionary npm + vendored FHIR R4/R5 labels).
+- **State at handoff (2026-05-01)**: Rescoped from `health-integrate`. PS360 Template Mapper + String Gen + Tool Launcher + Terminal stripped. Tauri/Vite/Monaco scaffold survives. Phase 1 engine 6/7 steps complete: API, format detector, walkers (hl7v2/json/xml), identity pool + redactor, bundled rule packs, label dictionary. `createEngine()` with no config now redacts across all five formats out of the box and emits human-labeled TokenTrees. 158 tests green. All workflow views still placeholders.
+- **Next**: Phase 1 step 7 — property-based tests (fast-check fuzzing of engine.redact across all formats). After Phase 1, move to Phase 2 (Scratchpad UI).
 
 ---
 
@@ -84,8 +84,8 @@ The engine in `@paste7/core` is UI-agnostic by design. Tauri desktop is one cons
 | 3c. XML walker (hl7v3, cda, fhir-xml) | shipped | `cd6b425` |
 | 4. Identity pool + redactor + engine wiring | shipped | `82cb0a6` |
 | 5. Bundled rule packs (hl7v2, fhir-json, fhir-xml, cda, hl7v3) | shipped | `edf6a8f` |
-| 6. Label dictionary integration | next |  |
-| 7. Property-based tests | pending |  |
+| 6. Label dictionary integration | shipped | `de9652e` |
+| 7. Property-based tests | next |  |
 
 The walker contract was extended in step 3a: `Walker.redact()` now returns `{ redacted, tree, findings, parseErrors }` so the engine doesn't need a side-channel for findings/errors.
 
@@ -95,7 +95,9 @@ The redactor uses a Norse-themed pool (30 name pairs, 21 streets, 10 cities). Su
 
 Rule packs default to `DEFAULT_RULE_PACKS` from `rules/index.ts`. CDA + HL7 v3 share a `SHARED_RIM_RULES` set with trailing-fragment patterns, so both formats redact under any document/interaction root.
 
-130 tests across 7 files: 15 format-detect + 18 hl7v2 walker + 13 fhir-json walker + 16 xml walker + 38 redactor + 13 engine + 17 rules.
+Step 6 added human-readable labels to TokenNode. HL7 v2 labels come from the `hl7-dictionary` npm package (vendors v2.1–v2.7.1 segment + field defs); version is read from MSH-12 with a v2.5 default. FHIR + CDA labels are hand-curated against rule-pack-targeted paths plus common navigation. Walkers thread the resolved label into every node they emit; unknown paths fall back to the path itself.
+
+158 tests across 8 files: 15 format-detect + 18 hl7v2 walker + 13 fhir-json walker + 16 xml walker + 38 redactor + 13 engine + 17 rules + 28 labels.
 
 ### What's placeholder
 
@@ -122,7 +124,7 @@ Rule packs default to `DEFAULT_RULE_PACKS` from `rules/index.ts`. CDA + HL7 v3 s
 - **Tauri identifier changed**: `com.health-integrate.app` → `dev.paste7.app`. Pre-alpha; no installed users to migrate.
 - **Tauri build needs the C++ workload**. Initial Rust build fails with `link: extra operand` errors if VS Build Tools don't include "Desktop development with C++" — that error means `link.exe` is being shadowed by coreutils `link` from Git Bash.
 - **CRLF warnings** on every git operation are harmless (Windows filesystem).
-- **Open dependabot PR** on the old branch `chore/dependabot` — still alive after the repo rename. Review/close separately when convenient.
+- **Dependabot housekeeping done** 2026-05-01: 5 stale PRs (#3-#7) closed; `chore/dependabot` branch deleted; bot will regenerate against current main when Phase 2 actually touches the affected `packages/app/` deps.
 
 ---
 
