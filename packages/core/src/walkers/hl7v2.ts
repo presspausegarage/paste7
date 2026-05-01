@@ -24,6 +24,7 @@ import type {
   WalkerResult,
 } from "../types.js";
 import { DEFAULT_STRATEGIES } from "../types.js";
+import { detectVersion, getLabel } from "../labels/hl7v2.js";
 
 // -----------------------------------------------------------------------------
 // Internal AST
@@ -50,6 +51,9 @@ interface ParsedMessage {
   separators: Separators;
   /** Line ending observed in the input ("\r\n", "\n", or "\r"). Preserved on serialize. */
   lineEnding: string;
+  /** Message version read from MSH-12, used by the label resolver. Undefined when
+   *  no MSH segment is present (partial paste) — resolver falls back to v2.5. */
+  version: string | undefined;
 }
 
 interface ParsedSegment {
@@ -191,8 +195,10 @@ export function parse(input: string): {
     segments.push(parseSegmentLine(line, separators, isMSH));
   }
 
+  const version = detectVersion(firstMsh);
+
   return {
-    parsed: { segments, separators, lineEnding },
+    parsed: { segments, separators, lineEnding, version },
     parseErrors,
   };
 }
@@ -260,6 +266,7 @@ interface WalkContext {
   redactor: Redactor;
   separators: Separators;
   findings: Finding[];
+  version: string | undefined;
 }
 
 /** Apply a redaction at the field level: replaces every repetition in place. */
@@ -319,28 +326,33 @@ function parseRepFromString(raw: string, sep: Separators): ParsedRep {
 function buildSubcomponentNodes(
   comp: ParsedComponent,
   basePath: string,
+  version: string | undefined,
 ): TokenNode[] {
   if (comp.subcomponents.length <= 1) return [];
-  return comp.subcomponents.map((sc, idx) => ({
-    path: `${basePath}.${idx + 1}`,
-    label: `${basePath}.${idx + 1}`,
-    kind: "subcomponent" as const,
-    value: sc,
-  }));
+  return comp.subcomponents.map((sc, idx) => {
+    const path = `${basePath}.${idx + 1}`;
+    return {
+      path,
+      label: getLabel(path, version),
+      kind: "subcomponent" as const,
+      value: sc,
+    };
+  });
 }
 
 function buildComponentNodes(
   rep: ParsedRep,
   fieldPath: string,
   sep: Separators,
+  version: string | undefined,
 ): TokenNode[] {
   if (rep.components.length <= 1) return [];
   return rep.components.map((comp, idx) => {
     const compPath = `${fieldPath}.${idx + 1}`;
-    const children = buildSubcomponentNodes(comp, compPath);
+    const children = buildSubcomponentNodes(comp, compPath, version);
     return {
       path: compPath,
-      label: compPath,
+      label: getLabel(compPath, version),
       kind: "component" as const,
       value: serializeComponent(comp, sep),
       ...(children.length > 0 ? { children } : {}),
@@ -352,12 +364,13 @@ function buildFieldNode(
   field: ParsedField,
   fieldPath: string,
   sep: Separators,
+  version: string | undefined,
   redaction?: TokenNode["redaction"],
 ): TokenNode {
   const value = serializeField(field, sep);
   const node: TokenNode = {
     path: fieldPath,
-    label: fieldPath,
+    label: getLabel(fieldPath, version),
     kind: "field",
     value,
   };
@@ -367,7 +380,7 @@ function buildFieldNode(
     // Only build component children for single-rep, non-redacted fields. Multi-rep
     // expansion would need a "repetition" kind which isn't in the contract; for v1
     // multi-rep fields render as a single joined value.
-    const compNodes = buildComponentNodes(field.reps[0]!, fieldPath, sep);
+    const compNodes = buildComponentNodes(field.reps[0]!, fieldPath, sep, version);
     if (compNodes.length > 0) {
       node.children = compNodes;
     }
@@ -402,7 +415,7 @@ function redactSegment(seg: ParsedSegment, ctx: WalkContext): TokenNode {
       applyFieldRedaction(field, fieldPath, rule, ctx);
       const strategy = rule.strategy ?? DEFAULT_STRATEGIES[rule.category];
       fieldNodes.push(
-        buildFieldNode(field, fieldPath, ctx.separators, {
+        buildFieldNode(field, fieldPath, ctx.separators, ctx.version, {
           rule: rule.rule,
           category: rule.category,
           strategy,
@@ -411,12 +424,14 @@ function redactSegment(seg: ParsedSegment, ctx: WalkContext): TokenNode {
       );
       continue;
     }
-    fieldNodes.push(buildFieldNode(field, fieldPath, ctx.separators));
+    fieldNodes.push(
+      buildFieldNode(field, fieldPath, ctx.separators, ctx.version),
+    );
   }
 
   return {
     path: seg.name,
-    label: seg.name,
+    label: getLabel(seg.name, ctx.version),
     kind: "segment",
     value: null,
     children: fieldNodes,
@@ -433,6 +448,7 @@ function redactImpl(
     redactor,
     separators: parsed.separators,
     findings: [],
+    version: parsed.version,
   };
 
   const segmentNodes: TokenNode[] = parsed.segments.map((seg) =>

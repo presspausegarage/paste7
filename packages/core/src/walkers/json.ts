@@ -20,6 +20,7 @@ import type {
   WalkerResult,
 } from "../types.js";
 import { DEFAULT_STRATEGIES } from "../types.js";
+import { detectVersion, getLabel } from "../labels/fhir.js";
 
 // -----------------------------------------------------------------------------
 // Internal AST: opaque JSON value plus its detected resource root
@@ -37,6 +38,11 @@ interface ParsedJson {
   value: JsonValue;
   /** Top-level resource label used as the path root ("Patient", "Bundle", ...). */
   rootLabel: string;
+  /** Top-level resourceType, passed to the label resolver for context. */
+  resourceType: string;
+  /** R4 vs R5 — affects no labels today (curated map is shared) but reserved
+   *  for future per-version divergence. */
+  version: "R4" | "R5" | undefined;
 }
 
 // -----------------------------------------------------------------------------
@@ -58,7 +64,12 @@ export function parse(input: string): {
       message: `JSON parse failed: ${(e as Error).message}`,
     });
     return {
-      parsed: { value: {}, rootLabel: "Resource" },
+      parsed: {
+        value: {},
+        rootLabel: "Resource",
+        resourceType: "Resource",
+        version: undefined,
+      },
       parseErrors,
     };
   }
@@ -86,7 +97,12 @@ export function parse(input: string): {
     });
   }
 
-  return { parsed: { value, rootLabel }, parseErrors };
+  const version = detectVersion(value);
+
+  return {
+    parsed: { value, rootLabel, resourceType: rootLabel, version },
+    parseErrors,
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -112,6 +128,12 @@ interface WalkContext {
   ruleset: RulePack;
   redactor: Redactor;
   findings: Finding[];
+  resourceType: string;
+  version: "R4" | "R5" | undefined;
+}
+
+function resolveLabel(path: string, ctx: WalkContext): string {
+  return getLabel(path, ctx.resourceType, ctx.version);
 }
 
 interface WalkOutcome {
@@ -170,11 +192,11 @@ function applyLeafRule(
 function walk(
   value: JsonValue,
   path: string,
-  label: string,
   ctx: WalkContext,
 ): WalkOutcome {
   // Leaf node: try to match a rule, build a property/element node.
   if (isLeaf(value)) {
+    const label = resolveLabel(path, ctx);
     const rule = matchRule(ctx.ruleset, path);
     if (rule) {
       const { newValue, redactionMeta } = applyLeafRule(value, path, rule, ctx);
@@ -208,8 +230,7 @@ function walk(
     const childNodes: TokenNode[] = [];
     for (let i = 0; i < value.length; i++) {
       const childPath = `${path}[${i}]`;
-      const childLabel = `${label}[${i}]`;
-      const outcome = walk(value[i]!, childPath, childLabel, ctx);
+      const outcome = walk(value[i]!, childPath, ctx);
       newArray.push(outcome.value);
       if (outcome.node) childNodes.push(outcome.node);
     }
@@ -217,7 +238,7 @@ function walk(
       value: newArray,
       node: {
         path,
-        label,
+        label: resolveLabel(path, ctx),
         kind: "property",
         value: null,
         ...(childNodes.length > 0 ? { children: childNodes } : {}),
@@ -231,7 +252,7 @@ function walk(
   const childNodes: TokenNode[] = [];
   for (const key of Object.keys(obj)) {
     const childPath = `${path}.${key}`;
-    const outcome = walk(obj[key]!, childPath, key, ctx);
+    const outcome = walk(obj[key]!, childPath, ctx);
     newObj[key] = outcome.value;
     if (outcome.node) childNodes.push(outcome.node);
   }
@@ -239,7 +260,7 @@ function walk(
     value: newObj,
     node: {
       path,
-      label,
+      label: resolveLabel(path, ctx),
       kind: "property",
       value: null,
       ...(childNodes.length > 0 ? { children: childNodes } : {}),
@@ -256,8 +277,14 @@ function redactImpl(
   ruleset: RulePack,
   redactor: Redactor,
 ): WalkerResult {
-  const ctx: WalkContext = { ruleset, redactor, findings: [] };
-  const outcome = walk(parsed.value, parsed.rootLabel, parsed.rootLabel, ctx);
+  const ctx: WalkContext = {
+    ruleset,
+    redactor,
+    findings: [],
+    resourceType: parsed.resourceType,
+    version: parsed.version,
+  };
+  const outcome = walk(parsed.value, parsed.rootLabel, ctx);
 
   // Top-level node always exists for object/array roots; for an unusual scalar
   // root it'd be a single property node — still renderable.

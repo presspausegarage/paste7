@@ -24,6 +24,7 @@ import type {
   WalkerResult,
 } from "../types.js";
 import { DEFAULT_STRATEGIES } from "../types.js";
+import { getCDALabel, getFHIRLabel } from "../labels/index.js";
 
 // -----------------------------------------------------------------------------
 // Internal AST: fast-xml-parser's preserveOrder shape
@@ -150,6 +151,19 @@ interface WalkContext {
   ruleset: RulePack;
   redactor: Redactor;
   findings: Finding[];
+  format: Format;
+}
+
+/** Pick the right resolver based on format. CDA + HL7 v3 share the RIM-derived
+ *  label map; FHIR XML uses the FHIR resolver. */
+function resolveLabel(path: string, fallback: string, ctx: WalkContext): string {
+  if (ctx.format === "fhir-xml") {
+    const label = getFHIRLabel(path);
+    return label === path ? fallback : label;
+  }
+  // cda + hl7v3
+  const label = getCDALabel(path);
+  return label === path ? fallback : label;
 }
 
 function applyRule(
@@ -207,13 +221,14 @@ function redactAttributes(
     }
     const attrPath = `${parentPath}/@${attrName}`;
     const value = String(attrs[rawKey]);
+    const label = resolveLabel(attrPath, `@${attrName}`, ctx);
     const rule = matchRule(ctx.ruleset, attrPath);
     if (rule) {
       const { newValue, redactionMeta } = applyRule(value, attrPath, rule, ctx);
       attrs[rawKey] = newValue ?? "";
       nodes.push({
         path: attrPath,
-        label: `@${attrName}`,
+        label,
         kind: "attribute",
         value: newValue,
         redaction: redactionMeta,
@@ -221,7 +236,7 @@ function redactAttributes(
     } else {
       nodes.push({
         path: attrPath,
-        label: `@${attrName}`,
+        label,
         kind: "attribute",
         value,
       });
@@ -290,7 +305,7 @@ function walkElement(
       textNode[TEXT_KEY] = newValue ?? "";
       return {
         path: elementPath,
-        label: localName,
+        label: resolveLabel(elementPath, localName, ctx),
         kind: "element",
         value: newValue,
         redaction: redactionMeta,
@@ -299,7 +314,7 @@ function walkElement(
     }
     return {
       path: elementPath,
-      label: localName,
+      label: resolveLabel(elementPath, localName, ctx),
       kind: "element",
       value: pureText.text,
       ...(childNodes.length > 0 ? { children: childNodes } : {}),
@@ -312,7 +327,7 @@ function walkElement(
 
   return {
     path: elementPath,
-    label: localName,
+    label: resolveLabel(elementPath, localName, ctx),
     kind: "element",
     value: null,
     ...(childNodes.length > 0 ? { children: childNodes } : {}),
@@ -341,7 +356,12 @@ function redactImpl(
   ruleset: RulePack,
   redactor: Redactor,
 ): WalkerResult {
-  const ctx: WalkContext = { ruleset, redactor, findings: [] };
+  const ctx: WalkContext = {
+    ruleset,
+    redactor,
+    findings: [],
+    format: parsed.format,
+  };
   const sub = walkChildren(parsed.root, "", ctx);
 
   const tree: TokenTree = { format: parsed.format, nodes: sub.nodes };
