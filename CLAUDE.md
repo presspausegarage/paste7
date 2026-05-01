@@ -21,7 +21,7 @@ Then read `docs/HANDOFF.md` for current build state.
 ## Working conventions
 
 - **MIT license, public GitHub**. No vendor branding. No Claude attribution in commits or code comments.
-- **Git commits direct** (no Claude footer). Author via `-c user.name="Andy Weston" -c user.email="andywestongaming@gmail.com"`.
+- **Git commits direct** (no Claude footer). Author via `-c user.name="Andy Weston" -c user.email="andy@presspause.dev"`.
 - **Save-as, never overwrite.** DICOM redact-and-export writes `<original>.redacted.dcm`; never mutates source files.
 - **Never write paste content to disk.** Scratchpad is memory-only by design — enforced by CI lint.
 - **CRLF warnings on git operations are harmless** (Windows filesystem).
