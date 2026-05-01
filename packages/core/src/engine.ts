@@ -2,6 +2,7 @@
 
 import { detectFormat as detectFormatImpl } from "./format-detect.js";
 import { createRedactor } from "./redact.js";
+import { DEFAULT_RULE_PACKS } from "./rules/index.js";
 import type {
   EngineConfig,
   Format,
@@ -29,8 +30,10 @@ export interface Engine {
 }
 
 export interface EngineConfigExtended extends EngineConfig {
-  /** Per-format rule packs. Defaults to the empty pack (no rules fire) until
-   *  step 5 of Phase 1 ships the bundled packs. */
+  /** Per-format rule packs. Defaults to the bundled DEFAULT_RULE_PACKS;
+   *  override per-format to swap in custom rules for one or more formats.
+   *  Pass an explicit empty pack ({ format, rules: [] }) to disable rules
+   *  for a format without affecting the others. */
   rulePacks?: Partial<Record<Format, RulePack>>;
 }
 
@@ -49,8 +52,8 @@ function pickWalker(format: Format): Walker<unknown> {
   throw new Error(`No walker registered for format: ${format}`);
 }
 
-function emptyRulePack(format: Format): RulePack {
-  return { format, rules: [] };
+function defaultRulePack(format: Format): RulePack {
+  return DEFAULT_RULE_PACKS[format];
 }
 
 /**
@@ -85,7 +88,7 @@ export function createEngine(config?: EngineConfigExtended): Engine {
 
       const walker = pickWalker(format);
       const { parsed, parseErrors } = walker.parse(input);
-      const rulePack = rulePacks[format] ?? emptyRulePack(format);
+      const rulePack = rulePacks[format] ?? defaultRulePack(format);
       const result: WalkerResult = walker.redact(parsed, rulePack, redactor);
 
       return {

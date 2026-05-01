@@ -171,11 +171,30 @@ describe("engine — format detection", () => {
   });
 });
 
-describe("engine — empty rule packs", () => {
-  it("with no rules, redacted output equals input (no findings)", async () => {
-    const engine = createEngine();
+describe("engine — empty rule packs override", () => {
+  it("explicit empty pack disables redaction for that format", async () => {
+    const engine = createEngine({
+      rulePacks: { hl7v2: { format: "hl7v2", rules: [] } },
+    });
     const result = await engine.redact(HL7V2_INPUT);
     expect(result.findings).toHaveLength(0);
     expect(result.redacted).toBe(HL7V2_INPUT);
+  });
+});
+
+describe("engine — bundled DEFAULT_RULE_PACKS", () => {
+  it("createEngine() with no config redacts using bundled HL7 v2 pack", async () => {
+    const engine = createEngine();
+    const result = await engine.redact(HL7V2_INPUT);
+    expect(result.findings.length).toBeGreaterThan(0);
+    expect(result.redacted).not.toBe(HL7V2_INPUT);
+  });
+
+  it("createEngine() with no config redacts FHIR JSON via bundled pack", async () => {
+    const engine = createEngine();
+    const result = await engine.redact(PATIENT_JSON);
+    const reparsed = JSON.parse(result.redacted);
+    expect(reparsed.name[0].family).not.toBe("Doe");
+    expect(reparsed.identifier[0].value).not.toBe("MRN12345");
   });
 });
