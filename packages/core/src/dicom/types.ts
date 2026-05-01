@@ -12,6 +12,46 @@
 
 import type { Finding, IdentityPool, ParseError, PHICategory, RedactStrategy } from "../types.js";
 
+// -----------------------------------------------------------------------------
+// Rule packs
+// -----------------------------------------------------------------------------
+
+/**
+ * Sub-profile gating per PS 3.15 Annex E. When the matching `retain*`
+ * config flag is true, the walker leaves the original value in place
+ * instead of applying the redaction strategy.
+ */
+export type DicomRetainProfile = "dates" | "uids" | "device-ids";
+
+/**
+ * One rule for a DICOM tag in the SR header surface. Tags are formatted
+ * as `(GGGG,EEEE)` with uppercase hex (e.g. `(0010,0010)` for PatientName).
+ * Tags marked K (keep) per PS 3.15 are simply omitted from the pack —
+ * no rule means the walker preserves the value verbatim.
+ */
+export interface DicomRule {
+  /** Group/element formatted as `(GGGG,EEEE)`, uppercase hex. */
+  tag: string;
+  /** DICOM Value Representation code (PN, DA, UI, ...). */
+  vr: string;
+  /** Standardized DICOM dictionary name. */
+  name: string;
+  category: PHICategory;
+  strategy: RedactStrategy;
+  /** Unique rule id for findings filtering / silencing. */
+  rule: string;
+  /**
+   * If set, this rule is gated by the corresponding sub-profile flag.
+   * When the flag is true, the walker preserves the original value;
+   * when false (default), the rule applies normally.
+   */
+  retainable?: DicomRetainProfile;
+}
+
+export interface DicomRulePack {
+  rules: ReadonlyArray<DicomRule>;
+}
+
 /**
  * Redact-and-serialize result for a single DICOM SR object.
  */
