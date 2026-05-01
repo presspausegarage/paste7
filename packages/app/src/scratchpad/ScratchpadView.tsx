@@ -41,6 +41,7 @@ export function ScratchpadView() {
   const [redactState, setRedactState] = useState<RedactState>({ status: "idle" });
   const [redactedView, setRedactedView] = useState<RedactedView>("raw");
   const [formatChoice, setFormatChoice] = useState<FormatChoice>("auto");
+  const [copyToast, setCopyToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (debouncedInput.trim() === "") {
@@ -72,6 +73,26 @@ export function ScratchpadView() {
   const redactedText = redactState.status === "ok" ? redactState.result.redacted : "";
   const findings = redactState.status === "ok" ? redactState.result.findings : NO_FINDINGS;
 
+  const showCopyToast = (label: string) => {
+    setCopyToast(label);
+    window.setTimeout(() => setCopyToast(null), 1800);
+  };
+
+  const copyRedacted = async () => {
+    if (redactState.status !== "ok") return;
+    await navigator.clipboard.writeText(redactState.result.redacted);
+    showCopyToast("copied redacted");
+  };
+
+  const copyOriginal = async () => {
+    if (input === "") return;
+    await navigator.clipboard.writeText(input);
+    showCopyToast("copied original");
+  };
+
+  const canCopyRedacted = redactState.status === "ok";
+  const canCopyOriginal = input !== "";
+
   return (
     <div className="scratchpad-view">
       <header className="scratchpad-header">
@@ -90,6 +111,26 @@ export function ScratchpadView() {
             </select>
           </label>
           <FormatBadge state={redactState} choice={formatChoice} />
+          <div className="copy-group" role="group" aria-label="Copy actions">
+            <button
+              type="button"
+              className="copy-btn copy-btn-primary"
+              onClick={copyRedacted}
+              disabled={!canCopyRedacted}
+              title="Copy the redacted output"
+            >
+              Copy redacted
+            </button>
+            <button
+              type="button"
+              className="copy-btn copy-btn-secondary"
+              onClick={copyOriginal}
+              disabled={!canCopyOriginal}
+              title="Copy the original pasted content (contains PHI)"
+            >
+              Copy original
+            </button>
+          </div>
         </div>
       </header>
 
@@ -162,6 +203,9 @@ export function ScratchpadView() {
           PHI mode: ON
         </span>
         <StatusDetail state={redactState} />
+        {copyToast && (
+          <span className="scratchpad-statusbar-toast">{copyToast}</span>
+        )}
       </footer>
     </div>
   );

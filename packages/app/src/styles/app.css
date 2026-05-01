@@ -350,6 +350,64 @@ button {
   font-size: 9px;
 }
 
+.copy-group {
+  display: inline-flex;
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid var(--border-2);
+}
+
+.copy-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 5px 10px;
+  color: var(--text-2);
+  background: var(--surface);
+  transition: background 0.12s, color 0.12s;
+  border-right: 1px solid var(--border-2);
+}
+
+.copy-btn:last-child {
+  border-right: none;
+}
+
+.copy-btn-primary {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.copy-btn-primary:hover:not(:disabled) {
+  background: rgba(0, 200, 160, 0.2);
+}
+
+.copy-btn-secondary:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.copy-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.scratchpad-statusbar-toast {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  padding: 2px 8px;
+  background: var(--accent-soft);
+  border-radius: 4px;
+  animation: toast-fade 1.8s ease-out;
+}
+
+@keyframes toast-fade {
+  0% { opacity: 0; transform: translateX(4px); }
+  10% { opacity: 1; transform: translateX(0); }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 .scratchpad-body {
   flex: 1;
   display: flex;
