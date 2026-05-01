@@ -8,8 +8,8 @@ Handoff notes for picking this project back up.
 
 - **What**: Tauri 2 + React + Monaco desktop scratchpad. Three workflows: Scratchpad (paste-and-redact for HL7 v2 / v3 / CDA / FHIR), DICOM SR (file-drop SR-header redaction; SR-only after the 2026-05-01 rescope), and HL7-viewer OCR (image paste/drop → Windows.Media.Ocr → HL7 normalization → existing HL7 v2 walker; Phase 6).
 - **Where**: [github.com/presspausegarage/paste7](https://github.com/presspausegarage/paste7) — public, MIT.
-- **State at handoff (2026-05-01)**: Rescoped from `health-integrate`. PS360 Template Mapper + String Gen + Tool Launcher + Terminal stripped. Tauri/Vite/Monaco scaffold survives. **Phase 1 engine complete (7/7 steps)**: API, format detector, walkers (hl7v2/json/xml), identity pool + redactor, bundled rule packs, label dictionary, property-based fuzz tests. `createEngine()` with no config now redacts across all five formats out of the box and emits human-labeled TokenTrees. 192 tests green (158 example-based + 34 property-based). All workflow views still placeholders.
-- **Next**: Phase 2 — wire `@paste7/core` into the Scratchpad UI (Monaco paste view + tokenized findings panel + format-detection chrome).
+- **State at handoff (2026-05-01)**: Rescoped from `health-integrate`. PS360 Template Mapper + String Gen + Tool Launcher + Terminal stripped. Tauri/Vite/Monaco scaffold survives. **Phase 1 engine complete (7/7 steps)**: API, format detector, walkers (hl7v2/json/xml), identity pool + redactor, bundled rule packs, label dictionary, property-based fuzz tests. `createEngine()` with no config now redacts across all five formats out of the box and emits human-labeled TokenTrees. 192 tests green (158 example-based + 34 property-based). **Phase 2 Scratchpad UI complete (6/6 steps)**: split Monaco panes, debounced engine.redact() wiring, findings side panel with category filter chips, raw/tree toggle for the redacted view, format-detection chrome (auto + 5 explicit overrides + confidence), copy guards (redacted-primary split-button, no save action), in-memory invariant lint. DICOM view still placeholder.
+- **Next**: Phase 3 — DICOM SR headers (file-drop UX, SR-only scope, sanitized export).
 
 ---
 
@@ -42,13 +42,15 @@ paste7/
         identities.ts     (Phase 1)
     app/
       src/
-        scratchpad/         Paste view (placeholder; real impl Phase 2)
-        dicom/              File-drop view (placeholder; headers Phase 3, pixel-data Phase 6)
+        scratchpad/         Paste view (Phase 2 — split Monaco, findings, tree, copy guards)
+        dicom/              File-drop view (placeholder; headers Phase 3)
         shared/             Sidebar, Monaco, workflows registry, fs wrappers
       src-tauri/          Tauri 2 Rust shell
         src/
           lib.rs          Tauri commands: ping, read_text_file
           ocr.rs          (Phase 6) Windows.Media.Ocr binding
+  scripts/
+    lint-in-memory.mjs    (Phase 2) grep-based disk-write guard for scratchpad/**
   docs/
     HANDOFF.md            this file
     phi-field-map.md      (Phase 1 deliverable; not yet written)
@@ -70,7 +72,8 @@ The engine in `@paste7/core` is UI-agnostic by design. Tauri desktop is one cons
 
 - **Repo scaffolding**: npm workspaces monorepo, typecheck script, vitest in `@paste7/core`, gitignore tuned for Tauri + Vite outputs, public GitHub + MIT, clean commit history.
 - **Tauri shell**: launches a 1280×800 window titled "paste7", renders the Vite frontend, no network capabilities beyond IPC.
-- **Sidebar**: two groups (Paste, File), two workflow entries (Scratchpad, DICOM). Both render placeholder views.
+- **Sidebar**: two groups (Paste, File), two workflow entries (Scratchpad, DICOM). Scratchpad is the live workflow; DICOM still placeholder.
+- **Scratchpad** (Phase 2): top Monaco pane for paste-in, bottom pane toggles between read-only Monaco (raw redacted text) and a recursive token-tree view; right-side findings panel with category filter chips; header toolbar with format dropdown (auto + 5 overrides), confidence badge, and a copy-redacted/copy-original split-button; persistent "PHI mode: ON" status badge. Engine instance is per-view (one session of identity-binding state); input is debounced at 250ms before each `engine.redact()` call. No disk-write call paths in scratchpad/** — enforced by `npm run lint`.
 - **Two Tauri commands**: `ping` (health check) and `read_text_file` (UTF-8 read for user-selected absolute paths).
 
 ### Phase 1 progress (engine)
@@ -99,13 +102,30 @@ Step 6 added human-readable labels to TokenNode. HL7 v2 labels come from the `hl
 
 192 tests across 9 files: 15 format-detect + 18 hl7v2 walker + 13 fhir-json walker + 16 xml walker + 38 redactor + 13 engine + 17 rules + 28 labels + 34 property-based (fast-check).
 
+### Phase 2 progress (Scratchpad UI)
+
+| Step | Status | Commit |
+|---|---|---|
+| 1. Wire scratchpad shell — split Monaco panes + debounced engine.redact() + status bar | shipped | `1ff6241` |
+| 2. Findings side panel with category filter chips | shipped | `fdfe99f` |
+| 3. Tokenized tree view with raw/tree toggle | shipped | `082eed1` |
+| 4. Format-detection chrome (auto + 5 overrides + confidence) | shipped | `e8d2cc0` |
+| 5. Copy guards (redacted-primary split-button, original explicit) | shipped | `b3d6ab4` |
+| 6. In-memory invariant lint (`scripts/lint-in-memory.mjs`) | shipped | `a1a679d` |
+
+Pre-step `1c9f917` (core): added a triple-slash reference to `labels/hl7-dictionary.d.ts` so app-side tsc resolves the ambient module declaration when it walks core's sources. Required because `@paste7/core` exports source paths directly (`main: "./src/index.ts"`) and the app's tsconfig only includes `packages/app/src/**/*`, so ambient declarations under `packages/core/src/labels/` were not in the compilation unit until the triple-slash forced inclusion.
+
+Engine lifecycle in the Scratchpad: one `Engine` instance per `ScratchpadView` mount, retained via `useState(() => createEngine())`. This means identity bindings (real → fake) accumulate across edits within a single session, giving cross-edit consistency for the same patient who appears in successive paste edits. To start fresh with a new identity pool, the user has to navigate away and back — a Clear button is a possible Phase 2 polish task.
+
+`navigator.clipboard.writeText` (browser API) is used for both copy actions — no Tauri clipboard plugin needed because the writes happen in response to user button clicks, which satisfies the browser's user-activation requirement. The `clipboard-manager:default` capability already in `default.json` would only be needed for clipboard *reads* (e.g., paste-from-clipboard hotkey), which we don't have yet.
+
+The in-memory lint flags any reference to `writeTextFile`, `writeFile`, `writeBinaryFile`, `localStorage`, `sessionStorage`, `indexedDB`, or `@tauri-apps/plugin-fs` from anywhere under `scratchpad/**`. Phase 6 will extend the same lint to `ocr/**`. `dicom/**` will need a different rule (writes are allowed, but only against `*.redacted.dcm`) — defer that until Phase 3.
+
 The property suite generates synthetic HL7 v2 / FHIR JSON / CDA / FHIR XML messages, places marker tokens in PHI-bearing positions, and asserts six classes of invariant per format: engine.redact never throws, the redacted output re-parses without errors, no marker survives in `result.redacted`, no marker survives in `finding.redactedValue`, redact is deterministic within an engine instance, `reset()` returns to the initial state, and re-redacting the redacted output is a fixed point. Plus walker round-trip stability tests per format. The suite caught one real walker bug during authoring: fast-xml-parser's default `parseTagValue: true` was coercing element text like `<postalCode>00001</postalCode>` to the number `1`, losing leading zeros and breaking the redactor's shape-driven category branch (5-digit zip became "city"). Fixed by setting `parseTagValue: false` in `walkers/xml.ts`.
 
 ### What's placeholder
 
-- `scratchpad/ScratchpadView.tsx` — copy describing intent
-- `dicom/DicomView.tsx` — copy describing intent
-- `core/src/index.ts` — empty export, comments listing planned modules
+- `dicom/DicomView.tsx` — copy describing intent (Phase 3 turns it on)
 
 ### What's stripped (was in `health-integrate`)
 
@@ -136,9 +156,17 @@ The property suite generates synthetic HL7 v2 / FHIR JSON / CDA / FHIR XML messa
 
 All seven steps shipped (see commit table above). 192 tests cover the engine contract from end-to-end fixtures down to fast-check property invariants. No real PHI in the repo, ever — synthetic fixtures only.
 
-### Phase 2 — Scratchpad view (next)
+### Phase 2 — Scratchpad view ✅ shipped
 
-Wire the engine into the Monaco-based paste view. Side-by-side or stacked layout. Findings panel. Format auto-detect with override.
+All six steps shipped (see Phase 2 commit table). Engine wired, split Monaco panes, findings panel with filters, tokenized tree, format chrome, copy guards, in-memory lint. Runtime UI not yet exercised in Tauri dev — typecheck + lint + core tests are green; first launch verification is the next-action smoke test. See **Phase 2 polish backlog** below for items the rough-order spec scoped down.
+
+#### Phase 2 polish backlog (deferred from initial 6-step rough order)
+
+- **Click-finding-to-jump**: PLAN.md calls for clicking a finding to highlight the location in both editors. Findings carry walker-format-specific paths (e.g. `PID-5.1`, `Patient.name[0]`) that don't map directly to Monaco character offsets — needs a per-walker path-to-range resolver. Reasonable Phase 2.5 task.
+- **Clear / new-session button**: per-session identity bindings persist for the lifetime of `ScratchpadView`. A "Clear" action that calls `engine.reset()` and empties the input would give users an explicit way to drop state without remounting.
+- **Paste-from-clipboard hotkey**: pulls clipboard text into the paste pane via the `clipboard-manager:read` capability (not currently in `default.json`). Mostly a UX accelerator.
+- **Pane-layout user setting**: PLAN.md mentions "Side-by-side or stacked layout (user setting)." Currently stacked-only; switching would cost ~20 lines of CSS + a toggle.
+- **Findings rule/path filters**: panel currently filters by category only. Rule and path filters land in the same code path as category chips; trivial extension.
 
 ### Phase 3 — DICOM SR headers workflow
 
@@ -162,8 +190,9 @@ Per PLAN.md.
 
 | Task | Command / file |
 |---|---|
-| Run core tests (none yet) | `npm test --workspace=@paste7/core` |
+| Run core tests | `npm test --workspace=@paste7/core` |
 | Typecheck everything | `npm run typecheck` |
+| In-memory invariant lint | `npm run lint` |
 | Launch dev app | `npm run dev` |
 | Build NSIS installer | `npm run dist` |
 | Core engine source | `packages/core/src/` |
@@ -173,6 +202,7 @@ Per PLAN.md.
 | Tauri config | `packages/app/src-tauri/tauri.conf.json` |
 | Monaco setup | `packages/app/src/shared/monaco.ts` |
 | Workflow registry | `packages/app/src/shared/workflows.ts` |
+| In-memory lint script | `scripts/lint-in-memory.mjs` |
 
 ---
 
@@ -180,7 +210,7 @@ Per PLAN.md.
 
 1. **Code signing path** — deferred 2026-05-01. Unsigned pilot; revisit at v1.0 or first enterprise ask. Trusted Signing was briefly chosen and reversed (cost not justifiable pre-revenue). See [`_areas/security/code-signing.md`](../../_areas/security/code-signing.md) for the preserved alternatives table.
 2. **DICOM library** — `dicom-rs` (Rust, smaller bundle, more code) or `dcmjs` (TS, larger bundle, less code)?
-3. **Format detection ambiguity** — auto-detect with confidence + override, or always require explicit format selection? (Current PLAN.md: auto-detect with override.)
+3. **Format detection ambiguity** — auto-detect with confidence + override (decided 2026-05-01 in Phase 2; toolbar shows detected format + confidence pct in auto mode, "forced" badge when overridden).
 4. **HL7 v3 messaging coverage** — only RIM paths shared with CDA, or full message-type catalog? (Current scope: shared paths only; full catalog deferred to user-driven.)
 5. **Phase 6 OCR fallback** — if Windows.Media.Ocr accuracy is insufficient, ship tesseract.js WASM (~14 MB) as opt-in, or accept the gap?
 6. **Phase 7 MCP** — separate `@paste7/mcp` npm package, or sub-binary within the desktop installer? (Current PLAN.md: separate package.)
