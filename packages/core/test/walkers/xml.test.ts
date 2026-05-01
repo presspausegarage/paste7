@@ -345,26 +345,23 @@ describe("xml walker — round-trip", () => {
 // Helpers
 // -----------------------------------------------------------------------------
 
+interface AnyNode {
+  path: string;
+  kind: string;
+  value?: string | null;
+  redaction?: { category: string; originalLength: number; rule: string };
+  children?: ReadonlyArray<AnyNode>;
+}
+
 function findByPath(
-  nodes: ReadonlyArray<{
-    path: string;
-    children?: ReadonlyArray<unknown>;
-  }>,
+  nodes: ReadonlyArray<unknown>,
   target: string,
-): { path: string; kind: string; redaction?: unknown; children?: unknown } | undefined {
+): AnyNode | undefined {
   for (const n of nodes) {
-    const node = n as {
-      path: string;
-      kind: string;
-      redaction?: unknown;
-      children?: ReadonlyArray<unknown>;
-    };
+    const node = n as AnyNode;
     if (node.path === target) return node;
     if (node.children) {
-      const hit = findByPath(
-        node.children as ReadonlyArray<{ path: string }>,
-        target,
-      );
+      const hit = findByPath(node.children, target);
       if (hit) return hit;
     }
   }
