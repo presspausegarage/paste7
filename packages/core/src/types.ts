@@ -187,14 +187,21 @@ export interface RulePack {
 // Re-exported for implementers; not part of the public consumer API.
 // -----------------------------------------------------------------------------
 
+export interface WalkerResult {
+  redacted: string;
+  tree: TokenTree;
+  findings: ReadonlyArray<Finding>;
+  parseErrors: ReadonlyArray<ParseError>;
+}
+
 export interface Walker<TInternal = unknown> {
   format: Format | ReadonlyArray<Format>;
-  parse(input: string): TInternal;
+  parse(input: string): { parsed: TInternal; parseErrors: ReadonlyArray<ParseError> };
   redact(
     parsed: TInternal,
     ruleset: RulePack,
     redactor: Redactor,
-  ): { redacted: string; tree: TokenTree };
+  ): WalkerResult;
 }
 
 export interface RedactRequest {

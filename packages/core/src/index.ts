@@ -23,6 +23,7 @@ export type {
   Rule,
   RulePack,
   Walker,
+  WalkerResult,
   RedactRequest,
   RedactResponse,
   FreeTextScanRequest,
