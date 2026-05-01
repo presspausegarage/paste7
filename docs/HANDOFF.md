@@ -6,7 +6,7 @@ Handoff notes for picking this project back up.
 
 ## TL;DR
 
-- **What**: Tauri 2 + React + Monaco desktop scratchpad. Two workflows: Scratchpad (paste-and-redact for HL7 v2 / v3 / CDA / FHIR) and DICOM (file-drop header redaction; UI-screenshot pixel-data in Phase 6).
+- **What**: Tauri 2 + React + Monaco desktop scratchpad. Three workflows: Scratchpad (paste-and-redact for HL7 v2 / v3 / CDA / FHIR), DICOM SR (file-drop SR-header redaction; SR-only after the 2026-05-01 rescope), and HL7-viewer OCR (image paste/drop → Windows.Media.Ocr → HL7 normalization → existing HL7 v2 walker; Phase 6).
 - **Where**: [github.com/presspausegarage/paste7](https://github.com/presspausegarage/paste7) — public, MIT.
 - **State at handoff (2026-05-01)**: Rescoped from `health-integrate`. PS360 Template Mapper + String Gen + Tool Launcher + Terminal stripped. Tauri/Vite/Monaco scaffold survives. Phase 1 engine 5/7 steps complete: API, format detector, walkers (hl7v2/json/xml), identity pool + redactor, bundled rule packs. `createEngine()` with no config now redacts across all five formats out of the box. 130 tests green. Both workflow views are still placeholders.
 - **Next**: Phase 1 step 6 — label dictionary integration (cosmetic; pulls in hl7-dictionary npm + vendored FHIR R4/R5 labels).
@@ -143,21 +143,21 @@ Rule packs default to `DEFAULT_RULE_PACKS` from `rules/index.ts`. CDA + HL7 v3 s
 
 Wire the engine into the Monaco-based paste view. Side-by-side or stacked layout. Findings panel. Format auto-detect with override.
 
-### Phase 3 — DICOM headers workflow
+### Phase 3 — DICOM SR headers workflow
 
-Different UX paradigm (file-drop). Pick library: `dicom-rs` (Rust crate, Tauri command exposes redact-and-export) vs `dcmjs` (TS, runs in WebView). Pixel-data PHI deferred to Phase 6.
+Different UX paradigm (file-drop). **Scope-narrowed (2026-05-01) to Structured Report objects only**, headers only. Tool rejects non-SR DICOM on file-drop. ContentSequence (the SR tree body) is preserved verbatim — only File Meta + Patient/Study/Series/SOP module tags are redacted. Pick library: `dicom-rs` (Rust crate, Tauri command exposes redact-and-export) vs `dcmjs` (TS, runs in WebView); SR-only scope makes `dcmjs` likely sufficient.
 
 ### Phase 4 — Security hardening, Phase 5 — Distribution
 
 Per PLAN.md.
 
-### Phase 6 — Pixel-data redaction (UI screenshots only)
+### Phase 6 — HL7 viewer screenshot OCR
 
-Windows.Media.Ocr via `windows` Rust crate. Zero bundle cost. Scope-limited to clean SC application screenshots; diagnostic imaging burned-in text remains out of scope.
+**Scope-changed (2026-05-01)** from DICOM SC pixel-data OCR to HL7-viewer-screenshot ingestion. Pipeline: image (paste/drop) → Windows.Media.Ocr → raw text → HL7 normalization (`packages/core/src/normalize/hl7v2.ts`, canonical line endings, recovered delimiters, viewer-chrome stripping, common OCR substitutions) → `engine.redact()` (which already runs walker.parse for tokenization, rule matching, and TokenTree emission) → tokenized + redacted view. No image-output workflow; deliverable is text + tree.
 
 ### Phase 7 — Local MCP server (design-only)
 
-`@paste7/mcp` package wrapping `@paste7/core` over stdio JSON-RPC. AI agents call `redact_hl7v2`, `redact_fhir`, `redact_dicom_headers`, etc. Preserves no-network. Framed as "PHI redaction primitives," not compliance-claiming language.
+`@paste7/mcp` package wrapping `@paste7/core` over stdio JSON-RPC. AI agents call `redact_hl7v2`, `redact_fhir`, `redact_dicom_sr_headers`, `normalize_hl7v2`, etc. Preserves no-network. Framed as "PHI redaction primitives," not compliance-claiming language.
 
 ---
 

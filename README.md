@@ -2,7 +2,7 @@
 
 Lightweight desktop scratchpad for inspecting healthcare interop messages with PHI auto-redaction.
 
-Paste an HL7 v2, HL7 v3, C-CDA, or FHIR message and see it tokenized with patient identifiers redacted in real time. Drop a DICOM file and inspect headers before exporting a sanitized copy. In-memory only — message content is never written to disk.
+Paste an HL7 v2, HL7 v3, C-CDA, or FHIR message and see it tokenized with patient identifiers redacted in real time. Drop a DICOM Structured Report and inspect headers before exporting a sanitized copy. Drop a screenshot of an HL7 v2 message from a viewer tool and have its text extracted, normalized, and redacted. In-memory only — message content is never written to disk.
 
 **Status: pre-alpha.** Tauri 2 + Vite + React + Monaco scaffold present; PHI engine and views in active development. Not yet usable.
 
@@ -15,10 +15,10 @@ Paste an HL7 v2, HL7 v3, C-CDA, or FHIR message and see it tokenized with patien
 | C-CDA / CDA R2 | Paste | Phase 1-2 |
 | FHIR JSON | Paste | Phase 1-2 |
 | FHIR XML | Paste | Phase 1-2 |
-| DICOM headers | File-drop | Phase 3 |
-| DICOM SC pixel-data (UI screenshots only) | File-drop + OCR | Phase 6 |
+| DICOM SR headers | File-drop | Phase 3 |
+| HL7 v2 viewer screenshot | Image paste / file-drop + OCR | Phase 6 |
 
-PHI rule packs anchor on HIPAA Safe Harbor's 18-identifier list (HL7 family) and DICOM PS 3.15 Basic Application Confidentiality Profile (DICOM headers).
+PHI rule packs anchor on HIPAA Safe Harbor's 18-identifier list (HL7 family) and a Structured-Report-scoped subset of DICOM PS 3.15 Basic Application Confidentiality Profile (DICOM SR headers).
 
 ## Distribution
 
@@ -44,7 +44,9 @@ paste7 performs best-effort de-identification for developer debugging and QA wor
 
 The redaction rule packs are anchored on HIPAA Safe Harbor's 18 identifiers. Jurisdictions outside the US (GDPR, UK DPA, PIPEDA, etc.) define health-data privacy under different terms and may have requirements this tool does not specifically address.
 
-DICOM pixel-data PHI redaction is scoped to **Secondary Capture screenshots of clean application UIs** only. Burned-in modality text on diagnostic imaging pixels is out of scope. Phase 6 uses Windows.Media.Ocr for offline pixel-text detection at zero bundle cost.
+DICOM scope is **Structured Report (SR) header tags only** — no other modalities, no SR ContentSequence redaction, no pixel-data redaction of any kind. The tool will reject non-SR DICOM objects on file-drop.
+
+Phase 6 OCR is scoped to **screenshots of HL7 v2 messages displayed in third-party viewer/integration tools**. Windows.Media.Ocr extracts text, an HL7 normalization pass cleans up viewer chrome and common OCR substitutions, and the result feeds the same HL7 v2 redaction pipeline as the paste flow. The deliverable is text + a tokenized redacted view — never an image.
 
 ## Affiliations
 

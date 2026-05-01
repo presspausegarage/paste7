@@ -433,11 +433,16 @@ Locked as deferred:
 
 ## 15. What's not in this contract
 
-- DICOM walker (Phase 3 — separate doc when designed)
-- Pixel-data OCR pipeline (Phase 6 — Windows.Media.Ocr binding)
+- DICOM SR header walker (Phase 3 — separate doc when designed; SR-only after the 2026-05-01 rescope)
+- HL7 v2 OCR-text normalization (Phase 6 — `packages/core/src/normalize/hl7v2.ts`; pure text-in/text-out, runs *before* the engine, not part of the redaction contract)
+- Windows.Media.Ocr binding (Phase 6 — Rust side; produces the raw text input to normalization)
 - MCP server transport (Phase 7 — wraps this engine, doesn't change it)
 - Rust-side Tauri command shape for any of the above
 - Specific PHI field paths per format — see `docs/phi-field-map.md` (Phase 1 deliverable, not yet written)
+
+### Phase 6 pipeline relative to this contract
+
+The OCR / normalization stages produce a clean HL7 v2 string and then call `engine.redact(text, { format: "hl7v2" })`. The engine doesn't know or care that the input was OCR'd — tokenization (via `walker.parse`), rule matching, redaction, and TokenTree emission all run unchanged. Normalization is a separable preprocessing module that any HL7 v2 input source can use, not a contract change.
 
 ---
 

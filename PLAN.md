@@ -3,7 +3,8 @@
 A lightweight desktop scratchpad for inspecting healthcare interop messages with PHI auto-redaction. Per-user Windows installer, no admin rights, no network capabilities, in-memory only.
 
 **Formats (paste UX)**: HL7 v2, HL7 v3 messaging, C-CDA, FHIR (JSON + XML).
-**Formats (file-drop UX)**: DICOM headers (Phase 3); DICOM SC UI-screenshot pixel-data (Phase 6).
+**Formats (file-drop UX)**: DICOM SR headers (Phase 3).
+**Formats (image-input UX)**: screenshots of HL7 v2 messages displayed in third-party viewers — OCR + HL7 normalization → existing HL7 v2 walker (Phase 6).
 
 This file replaces a previous plan that scoped a multi-workflow radiology informatics toolkit (PS360 Template Mapper, String Generator, Tool Launcher, Integrated Terminal). All of that is removed; the residual Tauri/Vite/Monaco scaffold survives as the shell.
 
@@ -20,14 +21,16 @@ paste7/
         rules/            (Phase 1) hl7v2, hl7v3, cda, fhir
         redact.ts         (Phase 1) fake-identity substitution
         identities.ts     (Phase 1) fake-identity pool
+        normalize/        (Phase 6) hl7v2 OCR-text normalization (text-in/text-out)
     app/
       src/
         scratchpad/         Paste view (Phase 2)
-        dicom/              File-drop view (Phase 3 headers; Phase 6 pixel-data)
+        dicom/              DICOM SR file-drop view (Phase 3)
+        ocr/                HL7-viewer-screenshot ingest (Phase 6)
         shared/             Sidebar, Monaco, workflow registry — preserved
       src-tauri/          Tauri 2 Rust shell — preserved
         src/
-          ocr.rs          (Phase 6) Windows.Media.Ocr binding for SC redaction
+          ocr.rs          (Phase 6) Windows.Media.Ocr binding
   docs/
     phi-field-map.md      (Phase 1 deliverable) per-format PHI paths
     threat-model.md       (Phase 4 deliverable) capability scoping, in-memory invariants
@@ -70,24 +73,25 @@ Build the engine before any UI work. Three walkers cover all five paste formats;
   - In-memory only. Closing the app discards all paste content. No autosave, no recent-files, no history.
 - **CI lint rule**: any `writeTextFile` call from `packages/app/src/scratchpad/**` fails CI.
 
-## Phase 3 — DICOM headers workflow
+## Phase 3 — DICOM SR headers workflow
 
-Different UX paradigm (file-drop, not paste). Separate workflow tab.
+Different UX paradigm (file-drop, not paste). Separate workflow tab. **Scope-narrowed (2026-05-01) to DICOM Structured Report objects only**, headers only — no other modalities, no SR content tree, no pixel data ever.
 
-- **Drop area**: accepts `.dcm` files (single or multi-select).
-- **Header table**: tag (Group,Element), VR, original value, redacted value. Sort/filter by tag or PHI status.
+- **Drop area**: accepts `.dcm` files. Validates SOP Class UID is in the SR family (`1.2.840.10008.5.1.4.1.1.88.*`); rejects non-SR objects with a clear error.
+- **Header table**: tag (Group,Element), VR, original value, redacted value. Sort/filter by tag or PHI status. Restricted to File Meta + Patient/Study/Series/SOP modules; ContentSequence (the SR tree) is preserved verbatim — out of redaction scope.
 - **Redact-and-export**: writes sanitized `.dcm` next to original as `<name>.redacted.dcm`. Never overwrites source.
-- **Bulk mode**: drop a folder; redact all `.dcm` in one pass; report summary.
-- **Pixel-data redaction**: deferred to Phase 6, scoped to UI screenshots only.
-- **Library**: `dicom-rs` (Rust side, exposed via Tauri command) or `dcmjs` (TS side). Pick during phase based on bundle-size and capability fit.
-- **Rule pack**: DICOM PS 3.15 Basic Application Confidentiality Profile (~250 tags). Optional sub-profiles (retain-dates, retain-UIDs, retain-device-IDs) as user-configurable settings.
+- **Bulk mode**: drop a folder; SR-filter then redact all in one pass; report summary including a count of skipped non-SR files.
+- **No pixel-data redaction**: explicit non-goal in v1. SR objects can carry pixel data (waveforms, ECG strips) but redacting non-text content is out of scope.
+- **Library**: `dicom-rs` (Rust side, exposed via Tauri command) or `dcmjs` (TS side). With SR-only scope the surface is small enough that `dcmjs` is likely sufficient; revisit during phase.
+- **Rule pack**: subset of DICOM PS 3.15 Basic Application Confidentiality Profile filtered to tags actually present in SR header modules (~80 tags vs ~250 generic). Optional sub-profiles (retain-dates, retain-UIDs, retain-device-IDs) as user-configurable settings.
 
 ## Phase 4 — Security hardening
 
 - **Tauri 2 capability scoping per workflow**:
   - Scratchpad: clipboard read/write only. No file I/O. No network.
-  - DICOM: dialog open + sanitized file write only. No clipboard access. No network.
-  - Both: shared deny-list — no shell, no terminal, no http, no environment access.
+  - DICOM SR: dialog open + sanitized file write only. No clipboard access. No network.
+  - OCR (Phase 6): clipboard image read OR file-drop image read; no file write. No network.
+  - All: shared deny-list — no shell, no terminal, no http, no environment access.
 - **DPAPI for persistent state**: settings only (window size, default workflow, DICOM sub-profile selection). Never message content.
 - **Code signing**: re-check SignPath Foundation eligibility. Fallbacks: Certum OSS (~$30/yr), SSL.com eSigner EV (~$349/yr), or unsigned pilot.
 - **In-memory invariant lint**: scratchpad code path is checked by CI for any disk-writing call.
@@ -100,20 +104,36 @@ Different UX paradigm (file-drop, not paste). Separate workflow tab.
 - Tauri built-in updater fetching signed releases.
 - README PHI disclaimer prominent in installer screen and app About box.
 
-## Phase 6 — Pixel-data redaction (UI screenshots only)
+## Phase 6 — HL7 viewer screenshot OCR
 
-Scope-limited to DICOM Secondary Capture objects containing **clean application UI screenshots** (high contrast, system fonts, predictable layout). Not for arbitrary diagnostic imaging or burned-in modality text.
+**Scope-changed (2026-05-01)** from DICOM SC pixel-data OCR to HL7-viewer-screenshot ingestion. The new target is screenshots of HL7 v2 messages displayed in third-party viewer/integration tools, where copy-paste isn't available and the only artifact a user can extract is an image.
 
-- **OCR engine**: Windows.Media.Ocr via `windows` Rust crate. Built into Windows 10+, **zero bundle cost**, English (and 25+ other languages) supported, decent accuracy on clean UI text.
-- **Pipeline** (Rust side):
-  1. Decode DICOM SC pixel data → `SoftwareBitmap`
-  2. `OcrEngine::RecognizeAsync()` → text + bounding boxes
-  3. Filter detected text against the same PHI rule packs from Phase 1 (free-text match for SSN/phone/email/MRN patterns + fake-identity name list)
-  4. Return regions for redaction
-- **UI**: review pane shows detected regions + confidence scores; user accepts/overrides before export commits.
-- **Redaction**: black-rectangle overlay at confirmed regions; pixel data re-encoded; export as `<name>.redacted.dcm`.
-- **Fallback**: if Windows.Media.Ocr accuracy is insufficient on a given image type, tesseract.js WASM (~14 MB total, English-only `tessdata_fast`) loaded lazily on demand.
-- **Disclaimer compounds**: README and in-app surface "OCR is best-effort, may miss PHI in pixels; manual review required before sharing."
+The OCR output feeds the existing Phase 1 HL7 v2 walker — no new redaction surface, no image-output workflow, no pixel-data manipulation.
+
+### Pipeline
+
+```
+image (paste / drop)
+  → Windows.Media.Ocr → raw text (viewer chrome, possible Unicode-bar substitutions, line-break artifacts)
+  → HL7 normalization → cleaned HL7 v2 message string (canonical \r line endings, recovered |^~\& delimiters, viewer chrome stripped, common OCR confusions corrected)
+  → engine.redact() → walker.parse (tokenization) → rule-pack match → redactor → TokenTree + redacted text
+  → tokenized + redacted view (same UX as the paste flow)
+```
+
+Tokenization is the engine's existing `walker.parse` step, fed by the OCR + normalization stages upstream. The user-visible deliverable is the same TokenTree as the paste flow, just sourced from a screenshot.
+
+### Components
+
+- **OCR engine**: Windows.Media.Ocr via `windows` Rust crate. Built into Windows 10+, **zero bundle cost**, decent accuracy on clean rendered text (HL7-viewer screenshots are text on a controlled background, much easier than diagnostic imagery).
+- **HL7 normalization** (`packages/core/src/normalize/hl7v2.ts`, pure TS, no UI/Tauri deps):
+  - Canonicalize line endings to `\r`.
+  - Strip viewer chrome: line numbers, segment-name labels (`PID:`, `OBX:`), ANSI escape sequences, alternating-row backgrounds rendered as repeated whitespace.
+  - Recover delimiters: Unicode look-alikes (`｜` U+FF5C → `|`; `∧` → `^`; etc.); common OCR substitutions (`I`/`l`/`1` near segment-name boundary, `0`/`O` inside numeric components).
+  - Output: `{ normalized: string, normalizationNotes: NormalizationNote[] }` so the UI can show what the cleanup did and let the user override.
+  - Reusable: any HL7 v2 input source can run through normalization first; not specific to OCR.
+- **UI**: ingest pane shows the OCR raw text alongside the normalized text; flags any normalization decisions with low confidence; user accepts/overrides before redaction commits.
+- **Fallback**: if Windows.Media.Ocr accuracy is insufficient for a given viewer's rendering, tesseract.js WASM (~14 MB, English-only `tessdata_fast`) loaded lazily on demand.
+- **Disclaimer compounds**: README and in-app surface "OCR is best-effort. Always verify the normalized text matches the original message before relying on the redacted output."
 
 ## Phase 7 — Local MCP server (design-only at this point)
 
@@ -125,7 +145,8 @@ The `@paste7/core` engine is UI-agnostic. Phase 7 wraps it as a local MCP server
   - `redact_hl7v3(xml: string) -> { redacted, findings }`
   - `redact_cda(xml: string) -> { redacted, findings }`
   - `redact_fhir(json_or_xml: string) -> { redacted, findings }`
-  - `redact_dicom_headers(dcm_path: string) -> { redacted_path, findings }`
+  - `redact_dicom_sr_headers(dcm_path: string) -> { redacted_path, findings }`
+  - `normalize_hl7v2(text: string) -> { normalized, notes }`
   - `detect_format(content: string) -> { format, confidence }`
 - **Distribution**: separate npm package `@paste7/mcp` that depends on `@paste7/core`. User installs via `npx` or as a configured MCP server in their AI client.
 - **Positioning**: "PHI redaction primitives for healthcare data MCP workflows." **Not** "HIPAA-compliant MCP" — compliance is operational, not code-level.
@@ -133,7 +154,9 @@ The `@paste7/core` engine is UI-agnostic. Phase 7 wraps it as a local MCP server
 
 ## Non-goals (explicit)
 
-- DICOM pixel-data redaction beyond clean UI screenshots (diagnostic imaging burned-in PHI is a separate domain requiring different OCR + clinical context handling)
+- DICOM pixel-data redaction of any kind (image-pixel PHI is a separate domain requiring clinical-context handling and is no longer in scope after the 2026-05-01 rescope)
+- DICOM modalities other than Structured Report (SR) — CR, CT, MR, US, etc. are out of scope; tool will reject non-SR objects on file-drop
+- DICOM SR ContentSequence (the structured report tree itself) — only header tags are redacted; the report content body is preserved verbatim
 - HL7 v3 RIM message-type completeness beyond CDA-shared paths (long tail; add per user request)
 - X12, NCPDP (out of scope unless user-driven)
 - Free-text clinical narrative scrubbing (NLM Scrubber / Philter / ML territory)
@@ -147,11 +170,11 @@ The `@paste7/core` engine is UI-agnostic. Phase 7 wraps it as a local MCP server
 
 ### In-memory invariants
 
-All paste content and DICOM source bytes stay in memory. The only disk artifact paths are:
+All paste content, OCR'd image bytes, and DICOM source bytes stay in memory. The only disk artifact paths are:
 - Settings (DPAPI-encrypted, no message content)
-- DICOM redacted exports (user-initiated, already-sanitized output only)
+- DICOM SR redacted exports (user-initiated, already-sanitized output only)
 
-CI enforces this via grep-based lint over `scratchpad/**` (no `writeTextFile`) and `dicom/**` (writes only paths matching `*.redacted.dcm`).
+CI enforces this via grep-based lint over `scratchpad/**` and `ocr/**` (no `writeTextFile`, no image-write APIs) and `dicom/**` (writes only paths matching `*.redacted.dcm`).
 
 ### Format detection ambiguity
 
