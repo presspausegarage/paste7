@@ -85,7 +85,7 @@ The engine in `@paste7/core` is UI-agnostic by design. Tauri desktop is one cons
 | 4. Identity pool + redactor + engine wiring | shipped | `82cb0a6` |
 | 5. Bundled rule packs (hl7v2, fhir-json, fhir-xml, cda, hl7v3) | shipped | `edf6a8f` |
 | 6. Label dictionary integration | shipped | `de9652e` |
-| 7. Property-based tests | shipped | _pending commit_ |
+| 7. Property-based tests | shipped | `8a75351` |
 
 The walker contract was extended in step 3a: `Walker.redact()` now returns `{ redacted, tree, findings, parseErrors }` so the engine doesn't need a side-channel for findings/errors.
 
