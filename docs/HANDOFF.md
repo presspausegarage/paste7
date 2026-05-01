@@ -8,8 +8,8 @@ Handoff notes for picking this project back up.
 
 - **What**: Tauri 2 + React + Monaco desktop scratchpad. Two workflows: Scratchpad (paste-and-redact for HL7 v2 / v3 / CDA / FHIR) and DICOM (file-drop header redaction; UI-screenshot pixel-data in Phase 6).
 - **Where**: [github.com/presspausegarage/paste7](https://github.com/presspausegarage/paste7) — public, MIT.
-- **State at handoff (2026-04-30)**: Rescoped from `health-integrate`. PS360 Template Mapper + String Gen + Tool Launcher + Terminal stripped. Tauri/Vite/Monaco scaffold survives. PHI engine and both workflow views are placeholders; no functional code yet.
-- **Next**: Phase 1 — design + scaffold the PHI rule-pack engine in `@paste7/core`.
+- **State at handoff (2026-04-30)**: Rescoped from `health-integrate`. PS360 Template Mapper + String Gen + Tool Launcher + Terminal stripped. Tauri/Vite/Monaco scaffold survives. Phase 1 engine implementation underway: API surface, format detector, and all three walkers shipped (62 tests green). Both workflow views are still placeholders.
+- **Next**: Phase 1 step 4 — identity pool + Redactor implementation, then rule packs (step 5).
 
 ---
 
@@ -68,10 +68,30 @@ The engine in `@paste7/core` is UI-agnostic by design. Tauri desktop is one cons
 
 ### What works end-to-end
 
-- **Repo scaffolding**: npm workspaces monorepo, typecheck script (no tests yet — Phase 1 brings them back), gitignore tuned for Tauri + Vite outputs, public GitHub + MIT, clean commit history.
+- **Repo scaffolding**: npm workspaces monorepo, typecheck script, vitest in `@paste7/core`, gitignore tuned for Tauri + Vite outputs, public GitHub + MIT, clean commit history.
 - **Tauri shell**: launches a 1280×800 window titled "paste7", renders the Vite frontend, no network capabilities beyond IPC.
 - **Sidebar**: two groups (Paste, File), two workflow entries (Scratchpad, DICOM). Both render placeholder views.
 - **Two Tauri commands**: `ping` (health check) and `read_text_file` (UTF-8 read for user-selected absolute paths).
+
+### Phase 1 progress (engine)
+
+| Step | Status | Commit |
+|---|---|---|
+| 1. Engine API surface + types | shipped | `25ab8e2` |
+| 2. Format detector | shipped | `22028c8` |
+| 3a. HL7 v2 walker | shipped | `5e01418` |
+| 3b. FHIR JSON walker | shipped | `60539a7` |
+| 3c. XML walker (hl7v3, cda, fhir-xml) | shipped | `cd6b425` |
+| 4. Identity pool + redactor | next |  |
+| 5. Rule packs (hl7v2, fhir, cda, hl7v3) | pending |  |
+| 6. Label dictionary integration | pending |  |
+| 7. Property-based tests | pending |  |
+
+The walker contract was extended in step 3a: `Walker.redact()` now returns `{ redacted, tree, findings, parseErrors }` so the engine doesn't need a side-channel for findings/errors.
+
+The XML walker introduces `fast-xml-parser` as the only runtime dependency in `@paste7/core`. It uses `preserveOrder=true` to keep element order across parse-and-serialize.
+
+All walker tests use a stub redactor in-test (the real redactor lands in step 4). 62 tests pass: 15 format-detect + 18 hl7v2 + 13 fhir-json + 16 xml.
 
 ### What's placeholder
 
