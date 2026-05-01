@@ -120,7 +120,7 @@ Step 6 added human-readable labels to TokenNode. HL7 v2 labels come from the `hl
 ## Known issues / caveats
 
 - **Lockfiles need regeneration.** `package-lock.json` and `Cargo.lock` still reference `@health-integrate/*` package names. First `npm install` and `cargo build` after this rescope will reconcile against the new `@paste7/*` names.
-- **Code signing**: Azure Trusted Signing chosen 2026-05-01, shared across all Press Pause umbrella apps. Account provisioned; MSI identity verification + CI pipeline integration are open. See [`_areas/security/code-signing.md`](../../_areas/security/code-signing.md).
+- **Code signing**: deferred 2026-05-01. Pilot ships unsigned (one-click SmartScreen warning per user). Decision revisited at v1.0 or first enterprise ask. See [`_areas/security/code-signing.md`](../../_areas/security/code-signing.md) for the alternatives table preserved for that revisit.
 - **Tauri identifier changed**: `com.health-integrate.app` → `dev.paste7.app`. Pre-alpha; no installed users to migrate.
 - **Tauri build needs the C++ workload**. Initial Rust build fails with `link: extra operand` errors if VS Build Tools don't include "Desktop development with C++" — that error means `link.exe` is being shadowed by coreutils `link` from Git Bash.
 - **CRLF warnings** on every git operation are harmless (Windows filesystem).
@@ -183,7 +183,7 @@ Per PLAN.md.
 
 ## Open questions
 
-1. ~~**Code signing path**~~ — resolved 2026-05-01: Azure Trusted Signing under the Press Pause LLC MSI identity. See [`_areas/security/code-signing.md`](../../_areas/security/code-signing.md).
+1. **Code signing path** — deferred 2026-05-01. Unsigned pilot; revisit at v1.0 or first enterprise ask. Trusted Signing was briefly chosen and reversed (cost not justifiable pre-revenue). See [`_areas/security/code-signing.md`](../../_areas/security/code-signing.md) for the preserved alternatives table.
 2. **DICOM library** — `dicom-rs` (Rust, smaller bundle, more code) or `dcmjs` (TS, larger bundle, less code)?
 3. **Format detection ambiguity** — auto-detect with confidence + override, or always require explicit format selection? (Current PLAN.md: auto-detect with override.)
 4. **HL7 v3 messaging coverage** — only RIM paths shared with CDA, or full message-type catalog? (Current scope: shared paths only; full catalog deferred to user-driven.)

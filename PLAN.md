@@ -93,7 +93,7 @@ Different UX paradigm (file-drop, not paste). Separate workflow tab. **Scope-nar
   - OCR (Phase 6): clipboard image read OR file-drop image read; no file write. No network.
   - All: shared deny-list — no shell, no terminal, no http, no environment access.
 - **DPAPI for persistent state**: settings only (window size, default workflow, DICOM sub-profile selection). Never message content.
-- **Code signing**: Azure Trusted Signing under the Press Pause LLC MSI identity, shared across all umbrella apps. Build pipeline calls Azure SignTool for a fresh per-release cert; no HSM. See [`_areas/security/code-signing.md`](../../_areas/security/code-signing.md) for the umbrella decision and tag conventions.
+- **Code signing**: deferred. Pilot ships unsigned; users see a one-time SmartScreen "More info → Run anyway" on first install. Reputation accumulation only starts the day a release is signed, so deferring doesn't compound — it just delays. Decision revisited at v1.0 or first enterprise ask, whichever comes first. See [`_areas/security/code-signing.md`](../../_areas/security/code-signing.md) for the alternatives table preserved for that revisit.
 - **In-memory invariant lint**: scratchpad code path is checked by CI for any disk-writing call.
 - **Branded `SecretValue` types**: any redacted/original message text wears a TS-level type that lacks `toJSON`, making accidental persistence a compile error.
 
