@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { createEngine } from "@paste7/core";
-import type { Engine, RedactResult } from "@paste7/core";
+import type { Engine, Finding, RedactResult } from "@paste7/core";
 import { Editor } from "../shared/monaco.js";
+import { FindingsPanel } from "./FindingsPanel.js";
+
+const NO_FINDINGS: ReadonlyArray<Finding> = [];
 
 type RedactState =
   | { status: "idle" }
@@ -51,6 +54,7 @@ export function ScratchpadView() {
   }, [debouncedInput, engine]);
 
   const redactedText = redactState.status === "ok" ? redactState.result.redacted : "";
+  const findings = redactState.status === "ok" ? redactState.result.findings : NO_FINDINGS;
 
   return (
     <div className="scratchpad-view">
@@ -58,33 +62,37 @@ export function ScratchpadView() {
         <div className="scratchpad-title">Scratchpad</div>
       </header>
 
-      <div className="scratchpad-panes">
-        <section className="scratchpad-pane">
-          <div className="scratchpad-pane-label">Paste</div>
-          <div className="scratchpad-editor-wrap">
-            <Editor
-              height="100%"
-              language="plaintext"
-              theme="vs-dark"
-              value={input}
-              onChange={(value) => setInput(value ?? "")}
-              options={EDITOR_OPTIONS}
-            />
-          </div>
-        </section>
+      <div className="scratchpad-body">
+        <div className="scratchpad-panes">
+          <section className="scratchpad-pane">
+            <div className="scratchpad-pane-label">Paste</div>
+            <div className="scratchpad-editor-wrap">
+              <Editor
+                height="100%"
+                language="plaintext"
+                theme="vs-dark"
+                value={input}
+                onChange={(value) => setInput(value ?? "")}
+                options={EDITOR_OPTIONS}
+              />
+            </div>
+          </section>
 
-        <section className="scratchpad-pane">
-          <div className="scratchpad-pane-label">Redacted</div>
-          <div className="scratchpad-editor-wrap">
-            <Editor
-              height="100%"
-              language="plaintext"
-              theme="vs-dark"
-              value={redactedText}
-              options={{ ...EDITOR_OPTIONS, readOnly: true }}
-            />
-          </div>
-        </section>
+          <section className="scratchpad-pane">
+            <div className="scratchpad-pane-label">Redacted</div>
+            <div className="scratchpad-editor-wrap">
+              <Editor
+                height="100%"
+                language="plaintext"
+                theme="vs-dark"
+                value={redactedText}
+                options={{ ...EDITOR_OPTIONS, readOnly: true }}
+              />
+            </div>
+          </section>
+        </div>
+
+        <FindingsPanel findings={findings} />
       </div>
 
       <footer className="scratchpad-statusbar">
