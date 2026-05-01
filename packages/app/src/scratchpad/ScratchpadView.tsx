@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createEngine } from "@paste7/core";
-import type { Engine, Finding, RedactResult } from "@paste7/core";
+import type { Engine, Finding, Format, RedactResult } from "@paste7/core";
 import { Editor } from "../shared/monaco.js";
 import { FindingsPanel } from "./FindingsPanel.js";
 import { TokenTreeView } from "./TokenTreeView.js";
@@ -8,6 +8,16 @@ import { TokenTreeView } from "./TokenTreeView.js";
 const NO_FINDINGS: ReadonlyArray<Finding> = [];
 
 type RedactedView = "raw" | "tree";
+type FormatChoice = Format | "auto";
+
+const FORMAT_OPTIONS: ReadonlyArray<{ value: FormatChoice; label: string }> = [
+  { value: "auto", label: "Auto-detect" },
+  { value: "hl7v2", label: "HL7 v2" },
+  { value: "hl7v3", label: "HL7 v3" },
+  { value: "cda", label: "C-CDA" },
+  { value: "fhir-json", label: "FHIR JSON" },
+  { value: "fhir-xml", label: "FHIR XML" },
+];
 
 type RedactState =
   | { status: "idle" }
@@ -30,6 +40,7 @@ export function ScratchpadView() {
   const debouncedInput = useDebouncedValue(input, 250);
   const [redactState, setRedactState] = useState<RedactState>({ status: "idle" });
   const [redactedView, setRedactedView] = useState<RedactedView>("raw");
+  const [formatChoice, setFormatChoice] = useState<FormatChoice>("auto");
 
   useEffect(() => {
     if (debouncedInput.trim() === "") {
@@ -40,8 +51,9 @@ export function ScratchpadView() {
     let cancelled = false;
     setRedactState({ status: "redacting" });
 
+    const options = formatChoice === "auto" ? undefined : { format: formatChoice };
     engine
-      .redact(debouncedInput)
+      .redact(debouncedInput, options)
       .then((result) => {
         if (cancelled) return;
         setRedactState({ status: "ok", result });
@@ -55,7 +67,7 @@ export function ScratchpadView() {
     return () => {
       cancelled = true;
     };
-  }, [debouncedInput, engine]);
+  }, [debouncedInput, engine, formatChoice]);
 
   const redactedText = redactState.status === "ok" ? redactState.result.redacted : "";
   const findings = redactState.status === "ok" ? redactState.result.findings : NO_FINDINGS;
@@ -64,6 +76,21 @@ export function ScratchpadView() {
     <div className="scratchpad-view">
       <header className="scratchpad-header">
         <div className="scratchpad-title">Scratchpad</div>
+        <div className="scratchpad-toolbar">
+          <label className="format-select-label">
+            Format
+            <select
+              className="format-select"
+              value={formatChoice}
+              onChange={(e) => setFormatChoice(e.target.value as FormatChoice)}
+            >
+              {FORMAT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+          <FormatBadge state={redactState} choice={formatChoice} />
+        </div>
       </header>
 
       <div className="scratchpad-body">
@@ -156,6 +183,32 @@ function StatusDetail({ state }: { state: RedactState }) {
   return (
     <span className="scratchpad-statusbar-detail">
       {format} · {findings.length} finding{findings.length === 1 ? "" : "s"}
+    </span>
+  );
+}
+
+function FormatBadge({
+  state,
+  choice,
+}: {
+  state: RedactState;
+  choice: FormatChoice;
+}) {
+  if (state.status !== "ok") return null;
+  if (choice === "auto") {
+    const pct = Math.round(state.result.detectionConfidence * 100);
+    return (
+      <span className="format-badge format-badge-auto">
+        <span className="format-badge-prefix">detected</span>
+        {state.result.format}
+        <span className="format-badge-confidence">{pct}%</span>
+      </span>
+    );
+  }
+  return (
+    <span className="format-badge format-badge-forced">
+      <span className="format-badge-prefix">forced</span>
+      {state.result.format}
     </span>
   );
 }
