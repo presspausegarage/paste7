@@ -8,8 +8,8 @@ Handoff notes for picking this project back up.
 
 - **What**: Tauri 2 + React + Monaco desktop scratchpad. Two workflows: Scratchpad (paste-and-redact for HL7 v2 / v3 / CDA / FHIR) and DICOM (file-drop header redaction; UI-screenshot pixel-data in Phase 6).
 - **Where**: [github.com/presspausegarage/paste7](https://github.com/presspausegarage/paste7) — public, MIT.
-- **State at handoff (2026-04-30)**: Rescoped from `health-integrate`. PS360 Template Mapper + String Gen + Tool Launcher + Terminal stripped. Tauri/Vite/Monaco scaffold survives. Phase 1 engine implementation underway: API surface, format detector, and all three walkers shipped (62 tests green). Both workflow views are still placeholders.
-- **Next**: Phase 1 step 4 — identity pool + Redactor implementation, then rule packs (step 5).
+- **State at handoff (2026-05-01)**: Rescoped from `health-integrate`. PS360 Template Mapper + String Gen + Tool Launcher + Terminal stripped. Tauri/Vite/Monaco scaffold survives. Phase 1 engine 5/7 steps complete: API, format detector, walkers (hl7v2/json/xml), identity pool + redactor, bundled rule packs. `createEngine()` with no config now redacts across all five formats out of the box. 130 tests green. Both workflow views are still placeholders.
+- **Next**: Phase 1 step 6 — label dictionary integration (cosmetic; pulls in hl7-dictionary npm + vendored FHIR R4/R5 labels).
 
 ---
 
@@ -82,16 +82,20 @@ The engine in `@paste7/core` is UI-agnostic by design. Tauri desktop is one cons
 | 3a. HL7 v2 walker | shipped | `5e01418` |
 | 3b. FHIR JSON walker | shipped | `60539a7` |
 | 3c. XML walker (hl7v3, cda, fhir-xml) | shipped | `cd6b425` |
-| 4. Identity pool + redactor | next |  |
-| 5. Rule packs (hl7v2, fhir, cda, hl7v3) | pending |  |
-| 6. Label dictionary integration | pending |  |
+| 4. Identity pool + redactor + engine wiring | shipped | `82cb0a6` |
+| 5. Bundled rule packs (hl7v2, fhir-json, fhir-xml, cda, hl7v3) | shipped | `edf6a8f` |
+| 6. Label dictionary integration | next |  |
 | 7. Property-based tests | pending |  |
 
 The walker contract was extended in step 3a: `Walker.redact()` now returns `{ redacted, tree, findings, parseErrors }` so the engine doesn't need a side-channel for findings/errors.
 
 The XML walker introduces `fast-xml-parser` as the only runtime dependency in `@paste7/core`. It uses `preserveOrder=true` to keep element order across parse-and-serialize.
 
-All walker tests use a stub redactor in-test (the real redactor lands in step 4). 62 tests pass: 15 format-detect + 18 hl7v2 + 13 fhir-json + 16 xml.
+The redactor uses a Norse-themed pool (30 name pairs, 21 streets, 10 cities). Substitution is shape-aware: SSN-shaped input emits `000-00-NNNN`, MRN-shaped emits `MRN-FAKE-NNNN`, phone preserves dashed/dotted/parens shape against `555-01NN`, dates emit `1950-01-01` in the input's format. Bindings persist per Engine instance for cross-message consistency; FNV-1a-keyed map keeps originals out as plaintext map keys.
+
+Rule packs default to `DEFAULT_RULE_PACKS` from `rules/index.ts`. CDA + HL7 v3 share a `SHARED_RIM_RULES` set with trailing-fragment patterns, so both formats redact under any document/interaction root.
+
+130 tests across 7 files: 15 format-detect + 18 hl7v2 walker + 13 fhir-json walker + 16 xml walker + 38 redactor + 13 engine + 17 rules.
 
 ### What's placeholder
 
