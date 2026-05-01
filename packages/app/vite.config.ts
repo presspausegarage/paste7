@@ -21,6 +21,9 @@ export default defineConfig({
   build: {
     target: "esnext",
     minify: false,
-    sourcemap: true,
+    // Skip prod sourcemaps. Monaco's bundle pushes Vite's prod build into the
+    // 4 GB Node heap when sourcemaps are on; dev mode still has esbuild's
+    // inline maps for stack-trace fidelity.
+    sourcemap: false,
   },
 });
