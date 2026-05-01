@@ -1,13 +1,32 @@
 // @paste7/core — PHI rule-pack engine.
 //
-// Public surface lands here as Phase 1 modules ship:
-//   - engine.ts          orchestrator (detect format, dispatch walker, apply rule pack)
-//   - format-detect.ts   heuristic format detection
-//   - walkers/{hl7v2,xml,json}.ts
-//   - rules/{hl7v2,hl7v3,cda,fhir}.ts
-//   - redact.ts          fake-identity substitution, deterministic-per-session
-//   - identities.ts      fake-identity pool
-//
-// Nothing exported yet — pre-Phase-1.
+// See docs/engine-contract.md for the full design.
 
-export {};
+export { createEngine } from "./engine.js";
+export type { Engine } from "./engine.js";
+
+export type {
+  Format,
+  FormatDetection,
+  PHICategory,
+  RedactStrategy,
+  Finding,
+  ParseError,
+  TokenKind,
+  TokenNode,
+  TokenTree,
+  RedactResult,
+  RedactOptions,
+  EngineConfig,
+  NamePair,
+  IdentityPool,
+  Rule,
+  RulePack,
+  Walker,
+  RedactRequest,
+  RedactResponse,
+  FreeTextScanRequest,
+  Redactor,
+} from "./types.js";
+
+export { DEFAULT_STRATEGIES } from "./types.js";
