@@ -10,6 +10,8 @@
 // Version is detected from MSH-12 by the walker; resolver falls back to v2.5
 // when no version is supplied (most-common deployed v2 version).
 
+/// <reference path="./hl7-dictionary.d.ts" />
+
 import dict from "hl7-dictionary";
 
 const SUPPORTED_VERSIONS = [
