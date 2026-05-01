@@ -1,8 +1,8 @@
 {
-  "name": "@health-integrate/app",
+  "name": "@paste7/app",
   "version": "0.0.0",
   "private": true,
-  "description": "Health Integrate desktop application frontend (Vite + React + Monaco).",
+  "description": "paste7 desktop application frontend (Vite + React + Monaco) and Tauri shell.",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -13,7 +13,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@health-integrate/core": "*",
+    "@paste7/core": "*",
     "@monaco-editor/react": "^4.6.0",
     "@tauri-apps/api": "^2.1.1",
     "@tauri-apps/plugin-dialog": "^2.7.0",

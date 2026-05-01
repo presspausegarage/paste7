@@ -1,8 +1,8 @@
 {
-  "name": "health-integrate",
+  "name": "paste7",
   "version": "0.0.0",
   "private": true,
-  "description": "Radiology informatics desktop toolkit: template mapper, HL7 viewer, string generator, tool launcher, integrated terminal.",
+  "description": "Lightweight desktop scratchpad for inspecting healthcare interop messages with PHI auto-redaction. Paste HL7 v2/v3, C-CDA, or FHIR; drop DICOM files; see redacted views in real time. In-memory only.",
   "license": "MIT",
   "workspaces": [
     "packages/*"
@@ -11,7 +11,7 @@
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "tauri": "npm run tauri --workspace=@health-integrate/app --",
+    "tauri": "npm run tauri --workspace=@paste7/app --",
     "dev": "npm run tauri -- dev",
     "dist": "npm run tauri -- build"
   },

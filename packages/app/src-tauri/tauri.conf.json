@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Health Integrate",
+  "productName": "paste7",
   "version": "0.0.0",
-  "identifier": "com.health-integrate.app",
+  "identifier": "dev.paste7.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Health Integrate",
+        "title": "paste7",
         "width": 1280,
         "height": 800,
         "minWidth": 960,
@@ -30,9 +30,9 @@
     "active": true,
     "targets": ["nsis"],
     "category": "Productivity",
-    "copyright": "Copyright (c) 2026 Health Integrate contributors",
-    "shortDescription": "Radiology informatics toolkit: template mapper, HL7 viewer, utilities.",
-    "longDescription": "A lightweight desktop application combining dictation template mapping, HL7 message viewing and de-identification, string generation, tool launching, and an integrated terminal.",
+    "copyright": "Copyright (c) 2026 paste7 contributors",
+    "shortDescription": "Healthcare interop scratchpad with PHI auto-redaction.",
+    "longDescription": "Lightweight desktop scratchpad for inspecting healthcare interop messages. Paste HL7 v2 or v3, C-CDA, or FHIR (JSON or XML) and see them tokenized with patient identifiers redacted in real time. Drop DICOM files for header inspection and sanitized export. In-memory only; message content never written to disk.",
     "icon": [
       "icons/icon.ico"
     ],

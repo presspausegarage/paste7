@@ -7,12 +7,12 @@ interface Props {
 }
 
 export function Sidebar({ active, onSelect }: Props) {
-  const groups: WorkflowGroup[] = ["radiology", "utilities"];
+  const groups: WorkflowGroup[] = ["paste", "file"];
 
   return (
     <aside className="sidebar">
       <header className="sidebar-header">
-        <span className="sidebar-title">Health Integrate</span>
+        <span className="sidebar-title">paste7</span>
         <span className="sidebar-version">v0.0.0</span>
       </header>
       <nav className="sidebar-nav">

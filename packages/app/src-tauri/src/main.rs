@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    health_integrate_shell_lib::run();
+    paste7_shell_lib::run();
 }

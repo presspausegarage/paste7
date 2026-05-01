@@ -1,85 +1,66 @@
-# Health Integrate — Handoff
+# paste7 — Handoff
 
-Handoff notes for picking this project back up. Paste into Notion or read here.
+Handoff notes for picking this project back up.
 
 ---
 
 ## TL;DR
 
-- **What**: A per-user Windows desktop app (Tauri + React + Monaco) that consolidates five radiology-informatics workflows: **Template Mapper**, **HL7 Viewer**, **String Generator**, **Tool Launcher**, **Integrated Terminal**.
-- **Where**: [github.com/presspausegarage/health-integrate](https://github.com/presspausegarage/health-integrate) — public, MIT-licensed.
-- **How far**: Scaffolded end-to-end; Template Mapper is the only workflow with real functionality beyond placeholder views; the lint ruleset for it is in place but needs refinement against real templates.
-- **Next**: Harden the lint ruleset, then move on to inline pending-diffs + save-as export (Phase 3b-4). After that, PHI masker and HL7 viewer.
+- **What**: Tauri 2 + React + Monaco desktop scratchpad. Two workflows: Scratchpad (paste-and-redact for HL7 v2 / v3 / CDA / FHIR) and DICOM (file-drop header redaction; UI-screenshot pixel-data in Phase 6).
+- **Where**: [github.com/presspausegarage/paste7](https://github.com/presspausegarage/paste7) — public, MIT.
+- **State at handoff (2026-04-30)**: Rescoped from `health-integrate`. PS360 Template Mapper + String Gen + Tool Launcher + Terminal stripped. Tauri/Vite/Monaco scaffold survives. PHI engine and both workflow views are placeholders; no functional code yet.
+- **Next**: Phase 1 — design + scaffold the PHI rule-pack engine in `@paste7/core`.
 
 ---
 
-## Project goal
+## Decision log (rescope, 2026-04-30)
 
-A toolkit for the niche workflows a radiology informatics / integration specialist actually does day-to-day: normalizing dictation templates against a vendor integration configuration, debugging HL7 messages safely, generating repetitive command strings, launching other tools, and running CLI sessions — all in one signed installer with no admin rights required.
-
-See [PLAN.md](../PLAN.md) for the full phased plan, architecture rationale, and not-doing list.
+- **Renamed** product from "Health Integrate" to "paste7". GitHub repo renamed via `gh repo rename paste7`. Old URL redirects indefinitely.
+- **Stripped** (sunk cost recognized): PS360 Template Mapper (entire), String Generator (placeholder), Tool Launcher (placeholder), Integrated Terminal (placeholder). Original target audience too narrow; B2B sales cycle incompatible with solo Year-1 plan.
+- **Architecture preserved**: TypeScript core with Rust Tauri shell. Editor-latency rationale unchanged (live diagnostics, hover, completion run on every keypress and benefit from zero IPC).
+- **Format scope**: HL7 v2 + HL7 v3 + C-CDA + FHIR (JSON + XML) via paste UX; DICOM via file-drop UX. Five paste formats unified by three walkers (hl7v2, xml, json) and four rule packs.
+- **Phase 6 added**: pixel-data OCR redaction scope-limited to DICOM SC clean UI screenshots. Uses Windows.Media.Ocr for zero-bundle-cost offline OCR. Diagnostic imaging burned-in text remains out of scope.
+- **Phase 7 added (design-only)**: local MCP server wrapping `@paste7/core` for AI-agent consumption. stdio transport preserves no-network. Framed as "PHI redaction primitives" not "HIPAA-compliant" (compliance is operational, not code-level).
+- **Explicit non-goals**: DICOM diagnostic imaging pixel redaction, SCP listener, Azure connectivity, X12, NCPDP, free-text clinical narrative scrubbing.
+- **Trademark consideration**: product name "paste7" intentionally avoids phonetic of registered marks. Disclaimer in README and About box.
 
 ---
 
 ## Architecture at a glance
 
 ```
-health-integrate/
+paste7/
   packages/
-    core/                 Pure TS library: parsers, serializer, linter
-    app/                  Vite + React + TS frontend
+    core/                 PHI rule-pack engine (TS only, no UI, no Tauri deps)
       src/
-        ps360/            Template Mapper workflow
-        hl7/              HL7 Viewer placeholder
-        string-gen/       String Generator placeholder
-        tools/            Tool Launcher placeholder
-        terminal/         Terminal placeholder
-        shared/           Sidebar, Monaco setup, fs wrappers, workflow metadata
-      src-tauri/          Tauri 2 Rust shell (minimal; file I/O, dialog, clipboard)
+        index.ts          (stub, pre-Phase-1)
+        engine.ts         (Phase 1)
+        format-detect.ts  (Phase 1)
+        walkers/          (Phase 1) hl7v2, xml, json
+        rules/            (Phase 1) hl7v2, hl7v3, cda, fhir
+        redact.ts         (Phase 1)
+        identities.ts     (Phase 1)
+    app/
+      src/
+        scratchpad/         Paste view (placeholder; real impl Phase 2)
+        dicom/              File-drop view (placeholder; headers Phase 3, pixel-data Phase 6)
+        shared/             Sidebar, Monaco, workflows registry, fs wrappers
+      src-tauri/          Tauri 2 Rust shell
+        src/
+          lib.rs          Tauri commands: ping, read_text_file
+          ocr.rs          (Phase 6) Windows.Media.Ocr binding
   docs/
-    HANDOFF.md            This file
-  PLAN.md                 Phased development plan
-  README.md               Public landing page
-  NOTICES.md              Third-party attributions
+    HANDOFF.md            this file
+    phi-field-map.md      (Phase 1 deliverable; not yet written)
+    threat-model.md       (Phase 4 deliverable; not yet written)
+  PLAN.md                 phased plan, architecture, non-goals
+  README.md               public landing
+  CLAUDE.md               AI-assistant bootstrap
+  NOTICES.md              third-party attributions
   LICENSE                 MIT
 ```
 
-Key architectural decisions:
-
-- **Single app, not VS Code extension.** Consolidated because the threat model for HL7 paste (other editor extensions could exfiltrate PHI) argued against living inside an IDE.
-- **Tauri per-user install (`installMode: "currentUser"`).** No admin rights, no UAC, installs to `%LOCALAPPDATA%\Programs\`.
-- **TypeScript core with Rust shell.** Core library is TS for editor-latency reasons (live diagnostics, hover, completion run on every keypress and benefit from zero IPC). Rust shell handles file I/O, clipboard, pty bridge, and Phase 11 DPAPI storage.
-- **Monaco bundled locally** (no CDN fetches) with only the core editor API — language modes registered per workflow as needed. Tauri's strict CSP blocks external script loads.
-
----
-
-## Development setup
-
-```bash
-# Prerequisites (Windows):
-#  - Node 20+
-#  - rustup (https://rustup.rs)
-#  - Visual Studio Build Tools with "Desktop development with C++" workload
-#  - WebView2 (preinstalled on Win10 21H2+/Win11)
-
-git clone https://github.com/presspausegarage/health-integrate.git
-cd health-integrate
-npm install
-
-# Run core tests (no Rust needed)
-npm test --workspace=@health-integrate/core
-
-# Typecheck everything
-npm run typecheck
-
-# Launch the Tauri dev app
-npm run dev
-
-# Build the signed installer (needs signing cert configured; unsigned works too)
-npm run dist
-```
-
-First `cargo build` takes 5–10 minutes (300+ crates). Subsequent builds are seconds.
+The engine in `@paste7/core` is UI-agnostic by design. Tauri desktop is one consumer; a future MCP server (Phase 7) is another.
 
 ---
 
@@ -87,81 +68,72 @@ First `cargo build` takes 5–10 minutes (300+ crates). Subsequent builds are se
 
 ### What works end-to-end
 
-- **Repo scaffolding**: npm workspaces monorepo, typecheck + test scripts, gitignore tuned for Tauri + Vite outputs, public GitHub + MIT license, three-commit history pushed.
-- **Tauri shell**: launches a 1280×800 window titled "Health Integrate", renders the Vite frontend, no network capabilities beyond IPC.
-- **Sidebar**: grouped into Radiology (Template Mapper, HL7 Viewer) and Utilities (String Generator, Tools, Terminal). Five workflow entries; four render placeholder views.
-- **Template Mapper (Phase 3a)**:
-  - Load DataValue XML via file dialog → parses via `parseDataValue` → displays metadata (integration type, config name) plus expandable per-domain sections with inline editable external-value inputs.
-  - Load one or more template XML files → parses via `parsePortalAutoText` → left-pane list grouped by file + group name, searchable by name/description.
-  - Selecting a template renders: editable Monaco editor (top 3/4) + picklist panel (bottom 1/4) with per-field tabs.
-  - Picklist field view shows editable subheader name, type/position metadata, merge/autotext reference info, and a two-column choices table (spoken key → editable dictation text).
-  - **Bracket decoration**: picklist regions in the editor render as `[FieldName:choices]` with a click-to-pick popup listing all choices. Selecting a choice replaces the picklist text with the chosen dictation string.
-  - **Lint diagnostics**: Monaco squiggles + an inline "N issues" panel below the editor with per-diagnostic Fix buttons and a Fix-all action. Clicking a diagnostic jumps the editor to its location.
+- **Repo scaffolding**: npm workspaces monorepo, typecheck script (no tests yet — Phase 1 brings them back), gitignore tuned for Tauri + Vite outputs, public GitHub + MIT, clean commit history.
+- **Tauri shell**: launches a 1280×800 window titled "paste7", renders the Vite frontend, no network capabilities beyond IPC.
+- **Sidebar**: two groups (Paste, File), two workflow entries (Scratchpad, DICOM). Both render placeholder views.
+- **Two Tauri commands**: `ping` (health check) and `read_text_file` (UTF-8 read for user-selected absolute paths).
 
-### What's partial
+### What's placeholder
 
-- **Lint ruleset**: this is the main TBD. Current rules:
-  - `header/case` — section header case/spacing mismatch against `ReportHeaders` external value. Skips picklist field titles.
-  - `choice/case`, `choice/unknown` — picklist choice name validation against the inferred DataValue domain (Recommendation, Assessment, Laterality, TissueDensity, Pathology, etc.). Recommendation domain uses compound-grammar peeling for trailing laterality (Left/Right/Bilateral) and timeframe (`in X months`, `in 1-2 years`, `at age N`, abbreviated forms).
-  - `statement/recommendation-case`, `statement/recommendation-unknown` — full-line smoke test for `RECOMMENDATION: <rec> [lat] [time].` in static template text.
+- `scratchpad/ScratchpadView.tsx` — copy describing intent
+- `dicom/DicomView.tsx` — copy describing intent
+- `core/src/index.ts` — empty export, comments listing planned modules
 
-  **Known gaps**: the ruleset was tested against the minimal scrubbed fixture and partially validated against one real template. Specific areas that likely need attention:
+### What's stripped (was in `health-integrate`)
 
-  1. **False-positive tuning for `header/case`**. Any `Word:` at start-of-line with a case-insensitive match in ReportHeaders is flagged — including some that are legitimately not section headers in context (e.g. inline prose headers within narrative paragraphs).
-  2. **Domain-inference gaps**. Picklist fields whose name doesn't match `DOMAIN_INFERENCE` regexes (e.g. custom field names specific to a site) are silently skipped. A user-overridable mapping from field-name to DataValue domain would be safer.
-  3. **Timeframe patterns too narrow**. Real templates may use forms like "6 mo", "6-month follow-up", "in one year" that the current regex set doesn't recognize.
-  4. **Assessment / BI-RADS compound parsing**. Currently `choice/*` rules treat BI-RADS choices as plain strings (`"BI-RADS 2"`, `"BI RADS 2"`, `"2"`). The real matching semantics include alternate spellings and ordinal stripping.
-  5. **No rule for merge-field validation**. Type-4 merge fields (`Patient MRN`, `Accession Numbers`) aren't validated against the `Patient` / `Procedure` mapping lists yet.
-  6. **No rule for autotext-reference orphans**. Type-5 fields reference other autotexts by `autotextId`; we don't currently flag references to autotexts that aren't loaded in the workspace.
-  7. **Post-rename lint staleness**. When the user renames a subheader via the editable input, the AST's field name lags until reload. The live choice extraction follows the text (correct), but any diagnostic keyed on the AST `name` becomes stale.
-
-- **Template export / save-as**: not implemented. The current flow lets you edit but there's no "Save normalized copy" button yet.
-- **Round-trip on edit**: when the user edits the Monaco text, our offset-recalculator module from Phase 1 isn't yet invoked to fix up `start`/`length` attributes before re-serialization. Editing then saving would produce a file with misaligned field offsets. **Do not ship export without this fix.**
-
-### What's not started
-
-- Phase 3b: code actions beyond Fix (e.g. "Insert missing `FINDINGS:` header").
-- Phase 3c: inline pending-diffs model with per-hunk accept/reject.
-- Phase 3d: bulk-normalize workspace + smoke-test-all-templates command.
-- Phase 4: save-as diff export via Monaco DiffEditor.
-- Phase 5: PHI masker (field map + fake-identity substitution).
-- Phase 6: HL7 Viewer (paste-and-observe, vendored vscode-hl7 grammar).
-- Phase 7: API fields integration.
-- Phase 8: String Generator.
-- Phase 9: Tool Launcher.
-- Phase 10: Integrated Terminal (xterm.js + portable-pty).
-- Phase 11: Security hardening (DPAPI-encrypted app data, Windows Credential Manager, tamper detection, capability scoping, encrypted export bundles, code signing).
+- All PS360 Template Mapper code: `packages/app/src/ps360/`, `packages/core/src/{linter,parsers/{datavalue,portal-autotext},serializers/portal-autotext,types/{datavalue,portal-autotext}}.ts`
+- All PS360 tests and fixtures: `packages/core/test/`
+- String Generator placeholder: `packages/app/src/string-gen/`
+- Tool Launcher placeholder: `packages/app/src/tools/`
+- Terminal placeholder: `packages/app/src/terminal/`
+- HL7 placeholder (replaced by `scratchpad/`): `packages/app/src/hl7/`
+- `tombstone.md` from the brief archive interlude
 
 ---
 
 ## Known issues / caveats
 
-- **Code signing is not set up.** Unsigned installer works fine on unmanaged Windows (one-time SmartScreen "Run anyway" click). SignPath Foundation's free EV signing now requires a repo-reputation threshold the project doesn't meet. Options documented in [PLAN.md](../PLAN.md) and earlier conversation: ship unsigned; ask IT for an internal cert; paid Certum OSS cert (~$30/yr); or SSL.com eSigner for instant-rep EV (~$349/yr).
-- **Tauri build needs the C++ workload.** Initial Rust build will fail with `link: extra operand` errors if VS Build Tools don't include "Desktop development with C++" — that error means `link.exe` is falling through the PATH to coreutils `link` from Git Bash.
-- **Monaco bundle size is 5.8 MB.** Acceptable for a local app but worth trimming before ship. Moving from `monaco-editor/esm/vs/editor/editor.api` to a custom barrel that only imports the exact editor features in use would cut it further.
-- **Dev server port** is fixed at 1420 (Tauri convention). If another process holds it, `npm run dev` fails with "Port 1420 is already in use".
-- **Windows line endings**: git shows CRLF warnings on every commit because the repo is on a Windows file system and CRLF conversion is enabled. Harmless.
+- **Lockfiles need regeneration.** `package-lock.json` and `Cargo.lock` still reference `@health-integrate/*` package names. First `npm install` and `cargo build` after this rescope will reconcile against the new `@paste7/*` names.
+- **Code signing not set up.** Unsigned NSIS installer works on unmanaged Windows (one-time SmartScreen click). SignPath Foundation eligibility threshold needs re-checking — repo just renamed (preserves history), but reputation signals (stars, age, activity) reset effectively to day-one. Fallbacks: Certum OSS (~$30/yr), SSL.com eSigner EV (~$349/yr), or unsigned pilot.
+- **Tauri identifier changed**: `com.health-integrate.app` → `dev.paste7.app`. Pre-alpha; no installed users to migrate.
+- **Tauri build needs the C++ workload**. Initial Rust build fails with `link: extra operand` errors if VS Build Tools don't include "Desktop development with C++" — that error means `link.exe` is being shadowed by coreutils `link` from Git Bash.
+- **CRLF warnings** on every git operation are harmless (Windows filesystem).
+- **Open dependabot PR** on the old branch `chore/dependabot` — still alive after the repo rename. Review/close separately when convenient.
 
 ---
 
 ## How to continue
 
-### Recommended next 2–3 hours
+### Phase 1 — PHI rule-pack engine (recommended next 1-2 weeks)
 
-1. **Validate the lint ruleset against more real templates.** Open the scrubbed template fixture and a couple of real customer exports, load them with the real DataValue, and record which diagnostics are correct, which are false positives, which are missed. Use that punch list to drive rule refinement.
-2. **Add a rule-disable UI**. Users will want to silence noisy rules per-template or per-workspace. Small settings panel with checkboxes for rule codes; persist to `localStorage` for now (upgrade to DPAPI storage in Phase 11).
-3. **Fix offset recalculation before any save-as export.** The existing `offset-recalculator.ts` scaffold is in `packages/core/src/` — it needs implementing before export can safely round-trip edits. Property-based test in `packages/core/test/roundtrip.test.ts` already covers the AST-level round-trip; add one that exercises text edits.
+1. **Design the engine contract first.** Sketch `engine.ts` API, walker interface, rule-pack format. Property-based test framework before rules.
+2. **Write `docs/phi-field-map.md`.** All four paste formats. HIPAA Safe Harbor 18 identifiers map to:
+   - HL7 v2: PID/NK1/GT1/IN1/IN2/OBX/NTE/DG1/PR1/MSH-4,6 paths
+   - HL7 v3 + CDA: `recordTarget`, `author/assignedAuthor`, `custodian`, `participant`, `componentOf`
+   - FHIR: Patient, Practitioner, RelatedPerson, Person resources + identifier traversal across all resource types
+3. **Implement walkers** before rule packs. The three walkers are the contract; rule packs plug into stable interfaces.
+4. **Implement rule packs** in dependency order: hl7v2 (most familiar), then fhir (most modern + structurally simplest JSON), then cda (XML walker validation), then hl7v3 (largely shares CDA paths).
+5. **Tests**: synthetic fixtures only. No real PHI in the repo, ever.
 
-### Then (Phase 3b–4)
+### Phase 2 — Scratchpad view (recommended after Phase 1 ships)
 
-4. **Save normalized template**. Add a button that: invokes offset-recalculator on the edited AST, runs `serializePortalAutoText`, writes to `<original>.normalized.xml` via a new Rust command, opens a Monaco `DiffEditor` for review.
-5. **Bulk normalize**. Command that runs normalize-and-save across every loaded template, producing a multi-file diff tree.
-6. **Standalone smoke test**. A command (not just passive lint) that produces a formatted report of all diagnostics per template, exportable to a text file for sharing.
+Wire the engine into the Monaco-based paste view. Side-by-side or stacked layout. Findings panel. Format auto-detect with override.
 
-### Then
+### Phase 3 — DICOM headers workflow
 
-7. **Phase 5 + 6: PHI masker + HL7 Viewer.** The HL7 viewer is probably the second-most valuable workflow for the target audience. PHI masker is a prerequisite. Start with the HIPAA field map doc (Phase 5a) and the fake-identity JSON.
-8. Utilities (Phases 8–10) can run in parallel — the String Generator is a ~2-3 day task, Tool Launcher ~2 days, Terminal ~1–2 weeks.
+Different UX paradigm (file-drop). Pick library: `dicom-rs` (Rust crate, Tauri command exposes redact-and-export) vs `dcmjs` (TS, runs in WebView). Pixel-data PHI deferred to Phase 6.
+
+### Phase 4 — Security hardening, Phase 5 — Distribution
+
+Per PLAN.md.
+
+### Phase 6 — Pixel-data redaction (UI screenshots only)
+
+Windows.Media.Ocr via `windows` Rust crate. Zero bundle cost. Scope-limited to clean SC application screenshots; diagnostic imaging burned-in text remains out of scope.
+
+### Phase 7 — Local MCP server (design-only)
+
+`@paste7/mcp` package wrapping `@paste7/core` over stdio JSON-RPC. AI agents call `redact_hl7v2`, `redact_fhir`, `redact_dicom_headers`, etc. Preserves no-network. Framed as "PHI redaction primitives," not compliance-claiming language.
 
 ---
 
@@ -169,36 +141,25 @@ First `cargo build` takes 5–10 minutes (300+ crates). Subsequent builds are se
 
 | Task | Command / file |
 |---|---|
-| Run core tests | `npm test --workspace=@health-integrate/core` |
+| Run core tests (none yet) | `npm test --workspace=@paste7/core` |
 | Typecheck everything | `npm run typecheck` |
 | Launch dev app | `npm run dev` |
-| Build signed installer | `npm run dist` (after Rust + signing setup) |
-| Core library source | `packages/core/src/` |
-| Linter rules | `packages/core/src/linter.ts` |
-| PS360 UI | `packages/app/src/ps360/` |
-| Monaco setup | `packages/app/src/shared/monaco.ts` |
+| Build NSIS installer | `npm run dist` |
+| Core engine source | `packages/core/src/` |
+| Scratchpad UI | `packages/app/src/scratchpad/` |
+| DICOM UI | `packages/app/src/dicom/` |
 | Tauri commands | `packages/app/src-tauri/src/lib.rs` |
 | Tauri config | `packages/app/src-tauri/tauri.conf.json` |
-| Sidebar metadata | `packages/app/src/shared/workflows.ts` |
-| Scrubbed test fixtures | `packages/core/test/fixtures/` |
+| Monaco setup | `packages/app/src/shared/monaco.ts` |
+| Workflow registry | `packages/app/src/shared/workflows.ts` |
 
 ---
 
-## Decisions made (for future reference)
+## Open questions
 
-- **Naming**: "Health Integrate" is the public product name and repo name. "ISE Toolkit" was the working name early in conversation; renamed throughout after the public repo was created.
-- **No vendor branding in UI/repo.** Standard radiology terms (BI-RADS, FINDINGS, etc.) are fine — they're industry-standard. Specific vendor product names, version strings, customer-site identifiers, and owner names are excluded per earlier conversation.
-- **DataValue files are user-supplied.** The repo documents the schema and ships a synthetic fixture for testing, but the actual customer-specific configuration file never enters the repo.
-- **Monaco over CodeMirror** for the editor primitive. Best tooling for multi-workflow (PS360 + HL7 + String Gen all use Monaco), best React integration via `@monaco-editor/react`, and we already budgeted the bundle-size cost.
-- **React over Preact/Solid/Svelte**. `@monaco-editor/react` is mature; the ecosystem fit is strong; bundle size is not the dominant constraint.
-- **One Tauri app over VS Code extension.** Decided early; threat model for HL7 paste ruled out the multi-extension VS Code environment.
-- **Rust version tolerance.** DataValue parser matches vendor assembly strings structurally via regex — any `MRS.Aspen.Business... Version=*, Culture=*, PublicKeyToken=*` parses regardless of specific version numbers.
-
----
-
-## Open questions to resolve next time
-
-1. Do we ship the unsigned installer for a pilot group now, or wait for signing to be sorted?
-2. Does the target team's IT have an enterprise code-signing cert we can use, or are we buying our own?
-3. Which real template files should become the "golden set" that the lint ruleset is tuned against? (Pick 3–5 representative exports from different site configurations.)
-4. Is any of the lint ruleset work already a duplicate of functionality that exists in vendor tooling? Worth a quick look before investing more — we want to catch gaps the vendor tools miss, not reimplement them.
+1. **Code signing path** — re-attempt SignPath Foundation, or commit to Certum OSS, or ship unsigned pilot first?
+2. **DICOM library** — `dicom-rs` (Rust, smaller bundle, more code) or `dcmjs` (TS, larger bundle, less code)?
+3. **Format detection ambiguity** — auto-detect with confidence + override, or always require explicit format selection? (Current PLAN.md: auto-detect with override.)
+4. **HL7 v3 messaging coverage** — only RIM paths shared with CDA, or full message-type catalog? (Current scope: shared paths only; full catalog deferred to user-driven.)
+5. **Phase 6 OCR fallback** — if Windows.Media.Ocr accuracy is insufficient, ship tesseract.js WASM (~14 MB) as opt-in, or accept the gap?
+6. **Phase 7 MCP** — separate `@paste7/mcp` npm package, or sub-binary within the desktop installer? (Current PLAN.md: separate package.)

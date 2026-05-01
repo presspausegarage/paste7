@@ -1,17 +1,14 @@
 {
-  "name": "@health-integrate/core",
+  "name": "@paste7/core",
   "version": "0.0.0",
   "private": true,
-  "description": "Pure TypeScript library: PS360 template parsing, DataValue parsing, normalization, smoke-testing. No UI, no Tauri dependencies.",
+  "description": "PHI rule-pack engine: format walkers, per-format rule packs, redaction primitives. Pure TypeScript, no UI, no Tauri dependencies.",
   "license": "MIT",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./parsers/*": "./src/parsers/*.ts",
-    "./serializers/*": "./src/serializers/*.ts",
-    "./types/*": "./src/types/*.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
     "test": "vitest run",
@@ -19,9 +16,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json"
   },
-  "dependencies": {
-    "fast-xml-parser": "^4.5.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^22.0.0",
     "fast-check": "^3.23.0",

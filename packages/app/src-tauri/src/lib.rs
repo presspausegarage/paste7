@@ -1,7 +1,7 @@
-// Health Integrate — Tauri shell entry point.
+// paste7 Tauri shell entry point.
 //
-// Keep this file minimal. Rust-side capabilities (DPAPI storage, pty bridge,
-// PHI masker, etc.) land in their own modules under src/ as each phase ships.
+// Keep this file minimal. Rust-side capabilities (DPAPI storage, DICOM file
+// I/O, etc.) land in their own modules under src/ as each phase ships.
 
 use std::fs;
 use std::path::Path;

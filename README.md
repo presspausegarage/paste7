@@ -1,58 +1,55 @@
-# Health Integrate
+# paste7
 
-A lightweight desktop application for radiology informatics workflows:
+Lightweight desktop scratchpad for inspecting healthcare interop messages with PHI auto-redaction.
 
-- **Template Mapper** — autocomplete, lint, preview, bulk-edit, and smoke-test dictation template XML files against a user-supplied integration configuration.
-- **HL7 Viewer** — paste plain-text HL7 messages from logs or clipboard, see them tokenized and automatically de-identified in real time.
-- **String Generator** — form-driven builder for parameterized command strings (PowerShell, installer CLIs).
-- **Tool Launcher** — dashboard of shortcuts to externally-installed tools (Weasis, VS Code, Notepad++, etc.).
-- **Integrated Terminal** — embedded terminal (PowerShell / cmd / WSL / bash) for CLI work without context-switching.
+Paste an HL7 v2, HL7 v3, C-CDA, or FHIR message and see it tokenized with patient identifiers redacted in real time. Drop a DICOM file and inspect headers before exporting a sanitized copy. In-memory only — message content is never written to disk.
 
-All five workflows live in a single per-user Windows installer — no admin rights required.
+**Status: pre-alpha.** Tauri 2 + Vite + React + Monaco scaffold present; PHI engine and views in active development. Not yet usable.
 
-## Status
+## Supported formats
 
-Early development. See [PLAN.md](PLAN.md) for the architecture and phase plan.
+| Format | UX | Status |
+|---|---|---|
+| HL7 v2.x | Paste | Phase 1-2 |
+| HL7 v3 messaging | Paste | Phase 1-2 |
+| C-CDA / CDA R2 | Paste | Phase 1-2 |
+| FHIR JSON | Paste | Phase 1-2 |
+| FHIR XML | Paste | Phase 1-2 |
+| DICOM headers | File-drop | Phase 3 |
+| DICOM SC pixel-data (UI screenshots only) | File-drop + OCR | Phase 6 |
 
-## Development prerequisites
+PHI rule packs anchor on HIPAA Safe Harbor's 18-identifier list (HL7 family) and DICOM PS 3.15 Basic Application Confidentiality Profile (DICOM headers).
 
-- **Node.js** 20+ (latest LTS recommended)
-- **Rust** via [rustup](https://rustup.rs) — required to build and run the Tauri shell.
-  - On Windows, `rustup-init.exe` handles the install and sets up `cargo` / `rustc` on the `PATH`.
-  - Tauri additionally requires [Microsoft Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) on Windows (`Desktop development with C++` workload).
-- **WebView2** is pre-installed on Windows 10 21H2+ and Windows 11. Older Windows 10 builds need the [WebView2 Evergreen Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
+## Distribution
 
-## Development commands
+- **License**: MIT, public GitHub.
+- **Install**: per-user NSIS installer for Windows. No admin rights, no UAC. Installs to `%LOCALAPPDATA%\Programs\`.
+- **Target**: Windows 10 21H2+ / Windows 11. WebView2 preinstalled.
+- **Updates**: Tauri built-in updater, signed releases via GitHub Releases.
+
+## Development
 
 ```bash
-# Install dependencies
+# Prerequisites: Node 20+, rustup, VS Build Tools (Desktop development with C++)
 npm install
-
-# Run the core library tests (no Rust required)
-npm test --workspace=@ise-toolkit/core
-
-# Typecheck all workspaces
+npm test --workspace=@paste7/core   # core engine tests
 npm run typecheck
-
-# Launch the Tauri dev app (requires Rust)
-npm run dev
-
-# Produce a release build + NSIS installer (requires Rust)
-npm run dist
+npm run dev                         # launch Tauri dev app
+npm run dist                        # build NSIS installer
 ```
 
-## License
+## PHI handling
 
-MIT. See [LICENSE](LICENSE).
+paste7 performs best-effort de-identification for developer debugging and QA workflows. **It is not a certified HIPAA Safe Harbor tool.** Do not rely on it as a sole de-identification layer for data you intend to share or publish.
+
+The redaction rule packs are anchored on HIPAA Safe Harbor's 18 identifiers. Jurisdictions outside the US (GDPR, UK DPA, PIPEDA, etc.) define health-data privacy under different terms and may have requirements this tool does not specifically address.
+
+DICOM pixel-data PHI redaction is scoped to **Secondary Capture screenshots of clean application UIs** only. Burned-in modality text on diagnostic imaging pixels is out of scope. Phase 6 uses Windows.Media.Ocr for offline pixel-text detection at zero bundle cost.
+
+## Affiliations
+
+paste7 is not affiliated with or endorsed by Health Level Seven International, NEMA, ONC, HHS, or any vendor whose interop formats it handles.
 
 ## Third-party components
 
 See [NOTICES.md](NOTICES.md).
-
-## About configuration files
-
-This tool interfaces with XML integration configurations exported from radiology dictation and voice-recognition systems. Configuration files are vendor- and customer-specific and are **not distributed with this tool**. Provide your own configuration file at runtime via the app's settings.
-
-## PHI handling
-
-The HL7 Viewer performs best-effort de-identification for developer debugging and QA workflows. It is **not a certified HIPAA Safe Harbor tool**. Do not rely on it as a sole de-identification layer for data you intend to share or publish.
