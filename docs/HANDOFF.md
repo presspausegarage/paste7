@@ -118,7 +118,7 @@ Rule packs default to `DEFAULT_RULE_PACKS` from `rules/index.ts`. CDA + HL7 v3 s
 ## Known issues / caveats
 
 - **Lockfiles need regeneration.** `package-lock.json` and `Cargo.lock` still reference `@health-integrate/*` package names. First `npm install` and `cargo build` after this rescope will reconcile against the new `@paste7/*` names.
-- **Code signing not set up.** Unsigned NSIS installer works on unmanaged Windows (one-time SmartScreen click). SignPath Foundation eligibility threshold needs re-checking — repo just renamed (preserves history), but reputation signals (stars, age, activity) reset effectively to day-one. Fallbacks: Certum OSS (~$30/yr), SSL.com eSigner EV (~$349/yr), or unsigned pilot.
+- **Code signing**: Azure Trusted Signing chosen 2026-05-01, shared across all Press Pause umbrella apps. Account provisioned; MSI identity verification + CI pipeline integration are open. See [`_areas/security/code-signing.md`](../../_areas/security/code-signing.md).
 - **Tauri identifier changed**: `com.health-integrate.app` → `dev.paste7.app`. Pre-alpha; no installed users to migrate.
 - **Tauri build needs the C++ workload**. Initial Rust build fails with `link: extra operand` errors if VS Build Tools don't include "Desktop development with C++" — that error means `link.exe` is being shadowed by coreutils `link` from Git Bash.
 - **CRLF warnings** on every git operation are harmless (Windows filesystem).
@@ -181,7 +181,7 @@ Per PLAN.md.
 
 ## Open questions
 
-1. **Code signing path** — re-attempt SignPath Foundation, or commit to Certum OSS, or ship unsigned pilot first?
+1. ~~**Code signing path**~~ — resolved 2026-05-01: Azure Trusted Signing under the Press Pause LLC MSI identity. See [`_areas/security/code-signing.md`](../../_areas/security/code-signing.md).
 2. **DICOM library** — `dicom-rs` (Rust, smaller bundle, more code) or `dcmjs` (TS, larger bundle, less code)?
 3. **Format detection ambiguity** — auto-detect with confidence + override, or always require explicit format selection? (Current PLAN.md: auto-detect with override.)
 4. **HL7 v3 messaging coverage** — only RIM paths shared with CDA, or full message-type catalog? (Current scope: shared paths only; full catalog deferred to user-driven.)

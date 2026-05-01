@@ -93,7 +93,7 @@ Different UX paradigm (file-drop, not paste). Separate workflow tab. **Scope-nar
   - OCR (Phase 6): clipboard image read OR file-drop image read; no file write. No network.
   - All: shared deny-list — no shell, no terminal, no http, no environment access.
 - **DPAPI for persistent state**: settings only (window size, default workflow, DICOM sub-profile selection). Never message content.
-- **Code signing**: re-check SignPath Foundation eligibility. Fallbacks: Certum OSS (~$30/yr), SSL.com eSigner EV (~$349/yr), or unsigned pilot.
+- **Code signing**: Azure Trusted Signing under the Press Pause LLC MSI identity, shared across all umbrella apps. Build pipeline calls Azure SignTool for a fresh per-release cert; no HSM. See [`_areas/security/code-signing.md`](../../_areas/security/code-signing.md) for the umbrella decision and tag conventions.
 - **In-memory invariant lint**: scratchpad code path is checked by CI for any disk-writing call.
 - **Branded `SecretValue` types**: any redacted/original message text wears a TS-level type that lacks `toJSON`, making accidental persistence a compile error.
 
