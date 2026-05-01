@@ -8,8 +8,8 @@ Handoff notes for picking this project back up.
 
 - **What**: Tauri 2 + React + Monaco desktop scratchpad. Three workflows: Scratchpad (paste-and-redact for HL7 v2 / v3 / CDA / FHIR), DICOM SR (file-drop SR-header redaction; SR-only after the 2026-05-01 rescope), and HL7-viewer OCR (image paste/drop → Windows.Media.Ocr → HL7 normalization → existing HL7 v2 walker; Phase 6).
 - **Where**: [github.com/presspausegarage/paste7](https://github.com/presspausegarage/paste7) — public, MIT.
-- **State at handoff (2026-05-01)**: Rescoped from `health-integrate`. PS360 Template Mapper + String Gen + Tool Launcher + Terminal stripped. Tauri/Vite/Monaco scaffold survives. Phase 1 engine 6/7 steps complete: API, format detector, walkers (hl7v2/json/xml), identity pool + redactor, bundled rule packs, label dictionary. `createEngine()` with no config now redacts across all five formats out of the box and emits human-labeled TokenTrees. 158 tests green. All workflow views still placeholders.
-- **Next**: Phase 1 step 7 — property-based tests (fast-check fuzzing of engine.redact across all formats). After Phase 1, move to Phase 2 (Scratchpad UI).
+- **State at handoff (2026-05-01)**: Rescoped from `health-integrate`. PS360 Template Mapper + String Gen + Tool Launcher + Terminal stripped. Tauri/Vite/Monaco scaffold survives. **Phase 1 engine complete (7/7 steps)**: API, format detector, walkers (hl7v2/json/xml), identity pool + redactor, bundled rule packs, label dictionary, property-based fuzz tests. `createEngine()` with no config now redacts across all five formats out of the box and emits human-labeled TokenTrees. 192 tests green (158 example-based + 34 property-based). All workflow views still placeholders.
+- **Next**: Phase 2 — wire `@paste7/core` into the Scratchpad UI (Monaco paste view + tokenized findings panel + format-detection chrome).
 
 ---
 
@@ -85,7 +85,7 @@ The engine in `@paste7/core` is UI-agnostic by design. Tauri desktop is one cons
 | 4. Identity pool + redactor + engine wiring | shipped | `82cb0a6` |
 | 5. Bundled rule packs (hl7v2, fhir-json, fhir-xml, cda, hl7v3) | shipped | `edf6a8f` |
 | 6. Label dictionary integration | shipped | `de9652e` |
-| 7. Property-based tests | next |  |
+| 7. Property-based tests | shipped | _pending commit_ |
 
 The walker contract was extended in step 3a: `Walker.redact()` now returns `{ redacted, tree, findings, parseErrors }` so the engine doesn't need a side-channel for findings/errors.
 
@@ -97,7 +97,9 @@ Rule packs default to `DEFAULT_RULE_PACKS` from `rules/index.ts`. CDA + HL7 v3 s
 
 Step 6 added human-readable labels to TokenNode. HL7 v2 labels come from the `hl7-dictionary` npm package (vendors v2.1–v2.7.1 segment + field defs); version is read from MSH-12 with a v2.5 default. FHIR + CDA labels are hand-curated against rule-pack-targeted paths plus common navigation. Walkers thread the resolved label into every node they emit; unknown paths fall back to the path itself.
 
-158 tests across 8 files: 15 format-detect + 18 hl7v2 walker + 13 fhir-json walker + 16 xml walker + 38 redactor + 13 engine + 17 rules + 28 labels.
+192 tests across 9 files: 15 format-detect + 18 hl7v2 walker + 13 fhir-json walker + 16 xml walker + 38 redactor + 13 engine + 17 rules + 28 labels + 34 property-based (fast-check).
+
+The property suite generates synthetic HL7 v2 / FHIR JSON / CDA / FHIR XML messages, places marker tokens in PHI-bearing positions, and asserts six classes of invariant per format: engine.redact never throws, the redacted output re-parses without errors, no marker survives in `result.redacted`, no marker survives in `finding.redactedValue`, redact is deterministic within an engine instance, `reset()` returns to the initial state, and re-redacting the redacted output is a fixed point. Plus walker round-trip stability tests per format. The suite caught one real walker bug during authoring: fast-xml-parser's default `parseTagValue: true` was coercing element text like `<postalCode>00001</postalCode>` to the number `1`, losing leading zeros and breaking the redactor's shape-driven category branch (5-digit zip became "city"). Fixed by setting `parseTagValue: false` in `walkers/xml.ts`.
 
 ### What's placeholder
 
@@ -130,18 +132,11 @@ Step 6 added human-readable labels to TokenNode. HL7 v2 labels come from the `hl
 
 ## How to continue
 
-### Phase 1 — PHI rule-pack engine (recommended next 1-2 weeks)
+### Phase 1 — PHI rule-pack engine ✅ shipped
 
-1. **Design the engine contract first.** Sketch `engine.ts` API, walker interface, rule-pack format. Property-based test framework before rules.
-2. **Write `docs/phi-field-map.md`.** All four paste formats. HIPAA Safe Harbor 18 identifiers map to:
-   - HL7 v2: PID/NK1/GT1/IN1/IN2/OBX/NTE/DG1/PR1/MSH-4,6 paths
-   - HL7 v3 + CDA: `recordTarget`, `author/assignedAuthor`, `custodian`, `participant`, `componentOf`
-   - FHIR: Patient, Practitioner, RelatedPerson, Person resources + identifier traversal across all resource types
-3. **Implement walkers** before rule packs. The three walkers are the contract; rule packs plug into stable interfaces.
-4. **Implement rule packs** in dependency order: hl7v2 (most familiar), then fhir (most modern + structurally simplest JSON), then cda (XML walker validation), then hl7v3 (largely shares CDA paths).
-5. **Tests**: synthetic fixtures only. No real PHI in the repo, ever.
+All seven steps shipped (see commit table above). 192 tests cover the engine contract from end-to-end fixtures down to fast-check property invariants. No real PHI in the repo, ever — synthetic fixtures only.
 
-### Phase 2 — Scratchpad view (recommended after Phase 1 ships)
+### Phase 2 — Scratchpad view (next)
 
 Wire the engine into the Monaco-based paste view. Side-by-side or stacked layout. Findings panel. Format auto-detect with override.
 
