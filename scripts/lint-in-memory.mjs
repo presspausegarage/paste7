@@ -16,19 +16,32 @@ import { fileURLToPath } from "node:url";
 const SCRIPT_DIR = fileURLToPath(new URL(".", import.meta.url));
 const REPO_ROOT = join(SCRIPT_DIR, "..");
 
+const SHARED_DISK_WRITE_PATTERNS = [
+  { pattern: /\bwriteTextFile\b/, why: "@tauri-apps/plugin-fs file write" },
+  { pattern: /\bwriteFile\b/, why: "node:fs file write" },
+  { pattern: /\bwriteBinaryFile\b/, why: "@tauri-apps/plugin-fs binary write" },
+  { pattern: /\blocalStorage\b/, why: "browser localStorage persistence" },
+  { pattern: /\bsessionStorage\b/, why: "browser sessionStorage persistence" },
+  { pattern: /\bindexedDB\b/, why: "browser IndexedDB persistence" },
+  { pattern: /["']@tauri-apps\/plugin-fs["']/, why: "tauri fs plugin import" },
+];
+
 const TARGETS = [
   {
     dir: "packages/app/src/scratchpad",
     label: "scratchpad",
-    forbidden: [
-      { pattern: /\bwriteTextFile\b/, why: "@tauri-apps/plugin-fs file write" },
-      { pattern: /\bwriteFile\b/, why: "node:fs file write" },
-      { pattern: /\bwriteBinaryFile\b/, why: "@tauri-apps/plugin-fs binary write" },
-      { pattern: /\blocalStorage\b/, why: "browser localStorage persistence" },
-      { pattern: /\bsessionStorage\b/, why: "browser sessionStorage persistence" },
-      { pattern: /\bindexedDB\b/, why: "browser IndexedDB persistence" },
-      { pattern: /["']@tauri-apps\/plugin-fs["']/, why: "tauri fs plugin import" },
-    ],
+    forbidden: SHARED_DISK_WRITE_PATTERNS,
+  },
+  {
+    // DICOM exports are allowed but only via the Rust `write_redacted_dicom`
+    // Tauri command, which derives the destination path itself and enforces
+    // the `.redacted.dcm` suffix. Direct write APIs from JS are still blocked
+    // — the same forbidden-pattern list applies. The scoped Tauri command
+    // shows up as `invoke("write_redacted_dicom", ...)` and is invisible to
+    // these patterns by design.
+    dir: "packages/app/src/dicom",
+    label: "dicom",
+    forbidden: SHARED_DISK_WRITE_PATTERNS,
   },
 ];
 
