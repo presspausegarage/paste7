@@ -2,6 +2,8 @@
 
 **If you are an AI assistant starting a new session on this project, read this file first, then [docs/HANDOFF.md](docs/HANDOFF.md), then [PLAN.md](PLAN.md).**
 
+Workspace conventions (handoff format, time tracking, journal, `_meta/` gitignore, naming rules) live at [`C:\dev\_meta\conventions.md`](../../_meta/conventions.md). When writing a session handoff under `C:\dev\_meta\handoffs\`, the `time_by_project:` frontmatter is required and the previous handoff gets flipped to `status: complete` with a `verification:` block citing artifacts when its claimed work has shipped (`conventions.md` §"Time tracking" + §"When the flip happens").
+
 ---
 
 ## One-paragraph context
