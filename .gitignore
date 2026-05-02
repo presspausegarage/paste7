@@ -32,6 +32,9 @@ packages/app/dist/
 coverage/
 .vitest-cache/
 
+# Locally-generated sample fixtures (script: scripts/generate-sample-sr.mjs)
+samples/
+
 # User-supplied files (NEVER commit DataValue exports)
 *DataValue*.xml
 !**/test/fixtures/*DataValue*.xml

@@ -13,6 +13,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint:in-memory",
     "lint:in-memory": "node scripts/lint-in-memory.mjs",
+    "sample:sr": "node scripts/generate-sample-sr.mjs",
     "tauri": "npm run tauri --workspace=@paste7/app --",
     "dev": "npm run tauri -- dev",
     "dist": "npm run tauri -- build"
