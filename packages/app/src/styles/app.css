@@ -917,3 +917,428 @@ button {
   color: var(--text-3);
   font-style: italic;
 }
+
+/* ========== DICOM view ========== */
+.dicom-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.dicom-header {
+  flex-shrink: 0;
+  height: 42px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+}
+
+.dicom-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.dicom-toolbar {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dicom-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 5px 12px;
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: 5px;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.dicom-btn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text-3);
+}
+
+.dicom-btn-primary {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: rgba(0, 200, 160, 0.3);
+}
+
+.dicom-btn-primary:hover:not(:disabled) {
+  background: rgba(0, 200, 160, 0.2);
+}
+
+.dicom-btn-subtle {
+  color: var(--text-3);
+  border-color: var(--border);
+}
+
+.dicom-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dicom-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 24px 32px;
+}
+
+.dicom-body::-webkit-scrollbar {
+  width: 6px;
+}
+.dicom-body::-webkit-scrollbar-thumb {
+  background: var(--border-2);
+  border-radius: 3px;
+}
+
+.dicom-status {
+  padding: 32px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.dicom-error {
+  padding: 32px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.06);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.dicom-error-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red);
+}
+
+.dicom-error-detail {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dicom-dropzone {
+  height: 100%;
+  min-height: 320px;
+  border: 1px dashed var(--border-2);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.dicom-dropzone.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dicom-dropzone-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 460px;
+  padding: 24px;
+  text-align: center;
+}
+
+.dicom-dropzone-icon {
+  font-size: 38px;
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+.dicom-dropzone-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dicom-dropzone-subtitle {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
+.dicom-ready {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.dicom-summary {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 6px 16px;
+  padding: 14px 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.dicom-summary-row {
+  display: contents;
+}
+
+.dicom-summary-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  align-self: center;
+}
+
+.dicom-summary-value {
+  font-size: 12px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dicom-summary-aside {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dicom-retain {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.dicom-retain-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-right: 8px;
+}
+
+.dicom-retain-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-2);
+  padding: 3px 9px;
+  border: 1px solid var(--border-2);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+
+.dicom-retain-toggle:hover {
+  color: var(--text);
+}
+
+.dicom-retain-toggle.is-on {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: rgba(0, 200, 160, 0.3);
+}
+
+.dicom-retain-toggle input {
+  accent-color: var(--accent);
+}
+
+.dicom-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  overflow: hidden;
+}
+
+.dicom-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.dicom-table thead th {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  text-align: left;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.dicom-table tbody td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.dicom-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.dicom-table tbody tr:hover {
+  background: var(--surface);
+}
+
+.dicom-cell-tag {
+  font-family: var(--font-mono);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.dicom-cell-vr {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+.dicom-cell-strategy {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 8px;
+  margin-right: 6px;
+  border: 1px solid var(--border-2);
+}
+
+.dicom-strat-substitute {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: rgba(0, 200, 160, 0.3);
+}
+
+.dicom-strat-scrub {
+  background: var(--blue-soft);
+  color: var(--blue);
+  border-color: rgba(78, 142, 247, 0.3);
+}
+
+.dicom-strat-remove {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--red);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.dicom-cell-cat {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-3);
+  border: 1px solid var(--border-2);
+}
+
+.dicom-cat-name,
+.dicom-cat-id {
+  background: var(--blue-soft);
+  color: var(--blue);
+  border-color: rgba(78, 142, 247, 0.3);
+}
+.dicom-cat-address,
+.dicom-cat-geo {
+  background: rgba(245, 166, 35, 0.12);
+  color: var(--amber);
+  border-color: rgba(245, 166, 35, 0.3);
+}
+.dicom-cat-phone,
+.dicom-cat-email,
+.dicom-cat-url {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: rgba(0, 200, 160, 0.3);
+}
+.dicom-cat-biometric,
+.dicom-cat-photo {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--red);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.dicom-cell-replacement {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-2);
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dicom-cell-replacement-removed {
+  color: var(--text-3);
+  font-style: italic;
+}
+
+.dicom-table-empty {
+  padding: 24px;
+  font-size: 12px;
+  color: var(--text-3);
+  font-style: italic;
+  text-align: center;
+}
+
+.dicom-statusbar {
+  flex-shrink: 0;
+  height: 26px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+.dicom-statusbar-detail {
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dicom-statusbar-success {
+  color: var(--accent);
+}
+
+.dicom-statusbar-error {
+  color: var(--red);
+}
