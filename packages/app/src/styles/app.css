@@ -844,6 +844,200 @@ button {
   opacity: 0.7;
 }
 
+/* ========== PHI policy modal ========== */
+.phi-policy-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(11, 14, 24, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: phi-policy-fade-in 0.16s ease-out;
+}
+
+@keyframes phi-policy-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.phi-policy-modal {
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-popup);
+  width: 600px;
+  max-width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.phi-policy-header {
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+}
+
+.phi-policy-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.phi-policy-title {
+  font-weight: 600;
+  font-size: var(--fs-lg);
+  letter-spacing: var(--tracking-title);
+  color: var(--text);
+}
+
+.phi-policy-close {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+
+.phi-policy-close:hover {
+  color: var(--text);
+  border-color: var(--text-3);
+}
+
+.phi-policy-disclaimer {
+  padding: 10px 18px;
+  background: var(--amber-soft);
+  border-bottom: 1px solid rgba(216, 138, 58, 0.2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--amber);
+  line-height: var(--lh-base);
+}
+
+.phi-policy-table-wrap {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.phi-policy-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-base);
+}
+
+.phi-policy-table thead th {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
+}
+
+.phi-policy-table tbody td {
+  padding: 7px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  vertical-align: middle;
+}
+
+.phi-policy-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.phi-policy-table tbody tr:hover {
+  background: var(--surface);
+}
+
+.phi-policy-cell-id {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+.phi-policy-cell-notes {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+  line-height: var(--lh-tight);
+}
+
+.phi-policy-strategy {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 8px;
+  border: 1px solid var(--border-2);
+}
+
+.phi-policy-strategy-substitute {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: rgba(61, 168, 142, 0.3);
+}
+
+.phi-policy-strategy-scrub {
+  color: var(--blue);
+  background: var(--blue-soft);
+  border-color: rgba(92, 134, 214, 0.3);
+}
+
+.phi-policy-strategy-remove {
+  color: var(--red);
+  background: var(--red-soft);
+  border-color: rgba(217, 83, 79, 0.3);
+}
+
+.phi-policy-strategy-flag-only {
+  color: var(--amber);
+  background: var(--amber-soft);
+  border-color: rgba(216, 138, 58, 0.3);
+}
+
+.phi-policy-footer {
+  padding: 10px 18px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+}
+
+.phi-policy-trigger {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-2);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+}
+
+.phi-policy-trigger:hover {
+  color: var(--accent);
+  border-color: rgba(61, 168, 142, 0.3);
+  background: var(--accent-soft);
+}
+
 .scratchpad-statusbar {
   flex-shrink: 0;
   height: 28px;

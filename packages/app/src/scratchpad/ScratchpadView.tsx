@@ -3,6 +3,7 @@ import { createEngine } from "@paste7/core";
 import type { Engine, Finding, Format, RedactResult } from "@paste7/core";
 import type { editor as MonacoEditor } from "monaco-editor";
 import { Editor, monaco } from "../shared/monaco.js";
+import { PhiPolicyModal } from "../shared/PhiPolicyModal.js";
 import { FindingsPanel } from "./FindingsPanel.js";
 import { TokenTreeView } from "./TokenTreeView.js";
 
@@ -41,6 +42,7 @@ export function ScratchpadView() {
   const [redactState, setRedactState] = useState<RedactState>({ status: "idle" });
   const [formatChoice, setFormatChoice] = useState<FormatChoice>("auto");
   const [toast, setToast] = useState<{ kind: "ok" | "warn" | "info"; text: string } | null>(null);
+  const [showPolicy, setShowPolicy] = useState(false);
 
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
   // Format choice + engine accessed inside paste handler — keep refs current.
@@ -190,6 +192,14 @@ export function ScratchpadView() {
             </select>
           </label>
           <FormatBadge state={redactState} choice={formatChoice} />
+          <button
+            type="button"
+            className="phi-policy-trigger"
+            onClick={() => setShowPolicy(true)}
+            title="Show what each PHI category does and the redaction strategy applied"
+          >
+            Policy
+          </button>
           <div className="copy-group" role="group" aria-label="Actions">
             <button
               type="button"
@@ -263,6 +273,8 @@ export function ScratchpadView() {
 
         <FindingsPanel findings={findings} />
       </div>
+
+      {showPolicy && <PhiPolicyModal onClose={() => setShowPolicy(false)} />}
 
       <footer className="scratchpad-statusbar">
         <span className="phi-badge" title="PHI redaction is always on; pasted content stays in memory.">
