@@ -704,48 +704,144 @@ button {
   position: relative;
 }
 
-/* ========== Paste hint overlay (empty state) ========== */
-.scratchpad-paste-hint {
+/* ========== Empty state (scratchpad paste pane, no content) ========== */
+.empty-state {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  padding: 32px 40px;
+  gap: 28px;
   pointer-events: none;
   z-index: 1;
   background: radial-gradient(
-    ellipse at center,
-    rgba(216, 138, 58, 0.04) 0%,
-    transparent 60%
+    ellipse at 50% 60%,
+    rgba(61, 168, 142, 0.04) 0%,
+    transparent 65%
   );
+  overflow-y: auto;
 }
 
-.scratchpad-paste-hint-glyph {
-  font-size: 36px;
-  color: var(--amber);
-  opacity: 0.5;
-  filter: drop-shadow(0 0 14px rgba(216, 138, 58, 0.4));
-}
-
-.scratchpad-paste-hint-text {
-  font-size: 12px;
-  color: var(--text-2);
-  max-width: 360px;
+.empty-state-headline {
   text-align: center;
-  line-height: 1.5;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.scratchpad-paste-hint-shortcut {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
+.empty-state-eyebrow {
+  margin-bottom: 4px;
+}
+
+.empty-state-title {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  letter-spacing: var(--tracking-hero);
+  color: var(--text);
+}
+
+.empty-state-subtitle {
+  font-size: var(--fs-md);
   color: var(--text-3);
-  padding: 3px 9px;
-  border: 1px solid var(--border-2);
-  border-radius: 4px;
+  line-height: var(--lh-copy);
+}
+
+.empty-state-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty-state-keycap {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
+  border: 1px solid var(--border-2);
+  color: var(--text-2);
+  letter-spacing: 0.04em;
+}
+
+.empty-state-keycap-plus {
+  color: var(--text-3);
+  font-size: var(--fs-base);
+}
+
+.empty-state-shortcut-hint {
+  color: var(--text-3);
+  font-size: var(--fs-base);
+  margin-left: 4px;
+}
+
+.empty-state-formats {
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.empty-state-formats-header {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.empty-state-formats-pill {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: rgba(61, 168, 142, 0.25);
+}
+
+.empty-state-formats-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.empty-state-formats-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.empty-state-formats-row:last-child {
+  border-bottom: none;
+}
+
+.empty-state-formats-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-2);
+  min-width: 82px;
+}
+
+.empty-state-formats-example {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-state-phase-note {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+  opacity: 0.7;
 }
 
 .scratchpad-statusbar {
@@ -1139,6 +1235,51 @@ button {
   background: rgba(216, 138, 58, 0.08);
   color: var(--amber);
   border-color: rgba(216, 138, 58, 0.25);
+}
+
+/* Path chip when the node is redacted — adopts the PHI category color so
+   structural location and PHI category read at a glance. The smaller
+   category badge to the right of the label still surfaces the category
+   text for screen readers / colorblind users. */
+.tree-path-redacted {
+  font-weight: 500;
+}
+
+.tree-path-cat-name,
+.tree-path-cat-id {
+  background: var(--blue-soft);
+  color: var(--blue);
+  border-color: rgba(92, 134, 214, 0.3);
+}
+
+.tree-path-cat-address,
+.tree-path-cat-geo,
+.tree-path-cat-date {
+  background: var(--amber-soft);
+  color: var(--amber);
+  border-color: rgba(216, 138, 58, 0.3);
+}
+
+.tree-path-cat-phone,
+.tree-path-cat-email,
+.tree-path-cat-url {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: rgba(61, 168, 142, 0.3);
+}
+
+.tree-path-cat-biometric,
+.tree-path-cat-photo {
+  background: var(--red-soft);
+  color: var(--red);
+  border-color: rgba(217, 83, 79, 0.3);
+}
+
+.tree-path-cat-device-id,
+.tree-path-cat-free-text {
+  background: var(--surface-2);
+  color: var(--text-3);
+  border-color: var(--border-2);
 }
 
 .tree-label {

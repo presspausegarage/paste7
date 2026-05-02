@@ -231,15 +231,7 @@ export function ScratchpadView() {
                 onChange={(value) => setContent(value ?? "")}
                 options={EDITOR_OPTIONS}
               />
-              {content === "" && (
-                <div className="scratchpad-paste-hint" aria-hidden="true">
-                  <div className="scratchpad-paste-hint-glyph">⎘</div>
-                  <div className="scratchpad-paste-hint-text">
-                    Paste content here. Raw PHI is redacted before it ever appears.
-                  </div>
-                  <div className="scratchpad-paste-hint-shortcut">Ctrl + V</div>
-                </div>
-              )}
+              {content === "" && <EmptyState />}
             </div>
           </section>
 
@@ -284,6 +276,52 @@ export function ScratchpadView() {
           </span>
         )}
       </footer>
+    </div>
+  );
+}
+
+const SUPPORTED_FORMATS: ReadonlyArray<{ label: string; example: string }> = [
+  { label: "HL7 v2.x", example: "MSH|^~\\&|…" },
+  { label: "HL7 v3", example: "<PRPA_IN201301UV02…" },
+  { label: "C-CDA", example: "<ClinicalDocument…" },
+  { label: "FHIR JSON", example: '{"resourceType":"Patient"…' },
+  { label: "FHIR XML", example: "<Patient xmlns=…" },
+];
+
+function EmptyState() {
+  return (
+    <div className="empty-state" aria-hidden="true">
+      <div className="empty-state-headline">
+        <div className="empty-state-eyebrow caption caption--accent">paste-and-redact scratchpad</div>
+        <div className="empty-state-title">Paste a message to begin</div>
+        <div className="empty-state-subtitle">
+          Raw PHI is redacted before it ever appears. Content stays in memory — nothing is written to disk.
+        </div>
+      </div>
+
+      <div className="empty-state-shortcut">
+        <span className="empty-state-keycap">Ctrl</span>
+        <span className="empty-state-keycap-plus">+</span>
+        <span className="empty-state-keycap">V</span>
+        <span className="empty-state-shortcut-hint">to paste and redact</span>
+      </div>
+
+      <div className="empty-state-formats">
+        <div className="empty-state-formats-header">
+          <span className="caption">Supported formats</span>
+          <span className="meta-pill empty-state-formats-pill">auto-detect</span>
+        </div>
+        <ul className="empty-state-formats-list">
+          {SUPPORTED_FORMATS.map((f) => (
+            <li key={f.label} className="empty-state-formats-row">
+              <span className="empty-state-formats-label">{f.label}</span>
+              <span className="empty-state-formats-example">{f.example}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="empty-state-phase-note">Image paste (OCR) · Phase 6</div>
     </div>
   );
 }

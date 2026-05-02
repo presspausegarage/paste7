@@ -58,11 +58,14 @@ function NodeBody({
   isRedacted: boolean;
   childCount?: number;
 }) {
+  const pathClass = isRedacted
+    ? `tree-path tree-path-redacted tree-path-cat-${node.redaction!.category}`
+    : `tree-path tree-path-${node.kind}`;
   return (
     <>
       <span
-        className={`tree-path tree-path-${node.kind}`}
-        title={`${node.kind} · ${node.path}`}
+        className={pathClass}
+        title={`${node.kind} · ${node.path}${isRedacted ? ` · ${node.redaction!.category}` : ""}`}
       >
         {displayPath(node.path)}
       </span>
