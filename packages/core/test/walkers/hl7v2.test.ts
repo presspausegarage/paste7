@@ -304,6 +304,90 @@ describe("hl7v2 walker — redact", () => {
     expect(pid5.children![0]!.value).toBe("DOE");
   });
 
+  it("expands multi-rep fields into repetition children with SEG-N[idx] paths", () => {
+    // PID-13 in SAMPLE_ADT is `(407)555-1234~(407)555-9999` — 2 reps. Use a
+    // rule pack that does not redact PID-13 so reps stay raw and the path
+    // structure is the only thing under test.
+    const limitedRules: RulePack = {
+      format: "hl7v2",
+      rules: [{ path: "PID-3", category: "id", rule: "hl7v2/PID-3" }],
+    };
+    const { parsed } = hl7v2Walker.parse(SAMPLE_ADT);
+    const stub = createStubRedactor();
+    const result = hl7v2Walker.redact(parsed, limitedRules, stub);
+    const pidNode = result.tree.nodes[1]!;
+    const pid13 = pidNode.children!.find((c) => c.path === "PID-13")!;
+
+    expect(pid13.kind).toBe("field");
+    expect(pid13.children).toBeDefined();
+    expect(pid13.children!.map((c) => c.path)).toEqual(["PID-13[1]", "PID-13[2]"]);
+    expect(pid13.children!.every((c) => c.kind === "repetition")).toBe(true);
+
+    // Each repetition carries its own serialized value.
+    expect(pid13.children![0]!.value).toBe("(407)555-1234");
+    expect(pid13.children![1]!.value).toBe("(407)555-9999");
+
+    // Repetition labels disambiguate from the field-level label so the
+    // tree reads cleanly when the same field appears multiple times.
+    expect(pid13.children![0]!.label).toMatch(/rep 1 of 2/);
+    expect(pid13.children![1]!.label).toMatch(/rep 2 of 2/);
+  });
+
+  it("preserves component children on redacted multi-component fields (drill-down through fakes)", () => {
+    // Mirrors how the real redactor's generateId handles CX-shape values:
+    // only the ID component is replaced, the assigning authority and type
+    // are preserved verbatim. The walker should then expose components so
+    // the user can drill into PID-3.1 / PID-3.4 / PID-3.5 and see what got
+    // substituted vs preserved.
+    const limitedRules: RulePack = {
+      format: "hl7v2",
+      rules: [{ path: "PID-3", category: "id", rule: "hl7v2/PID-3" }],
+    };
+    const structurePreservingStub: Redactor = {
+      apply(req: RedactRequest): RedactResponse {
+        let value: string;
+        if (req.value.includes("^")) {
+          const parts = req.value.split("^");
+          parts[0] = parts[0]!.length === 0 ? "" : "FAKE-ID";
+          value = parts.join("^");
+        } else {
+          value = "FAKE-ID";
+        }
+        return {
+          value,
+          finding: {
+            path: req.path,
+            category: req.category,
+            strategy: req.strategy,
+            rule: req.rule,
+            originalLength: req.value.length,
+            confidence: 1,
+            redactedValue: value,
+          },
+        };
+      },
+      scanFreeText: () => [],
+    };
+
+    const { parsed } = hl7v2Walker.parse(SAMPLE_ADT);
+    const result = hl7v2Walker.redact(parsed, limitedRules, structurePreservingStub);
+    const pidNode = result.tree.nodes[1]!;
+    const pid3 = pidNode.children!.find((c) => c.path === "PID-3")!;
+
+    expect(pid3.redaction).toBeDefined();
+    expect(pid3.children).toBeDefined();
+
+    const childPaths = pid3.children!.map((c) => c.path);
+    expect(childPaths).toContain("PID-3.1");
+    expect(childPaths).toContain("PID-3.4");
+    expect(childPaths).toContain("PID-3.5");
+
+    // PID-3.1 carries the substituted value; PID-3.4 / PID-3.5 are preserved verbatim.
+    expect(pid3.children!.find((c) => c.path === "PID-3.1")!.value).toBe("FAKE-ID");
+    expect(pid3.children!.find((c) => c.path === "PID-3.4")!.value).toBe("HOSP");
+    expect(pid3.children!.find((c) => c.path === "PID-3.5")!.value).toBe("MR");
+  });
+
   it("never exposes original PHI in finding.redactedValue when substituting", () => {
     const { parsed } = hl7v2Walker.parse(SAMPLE_ADT);
     const stub = createStubRedactor();

@@ -84,6 +84,7 @@ export interface ParseError {
 export type TokenKind =
   | "segment"
   | "field"
+  | "repetition"
   | "component"
   | "subcomponent"
   | "element"

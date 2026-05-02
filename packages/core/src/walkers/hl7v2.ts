@@ -327,13 +327,15 @@ function buildSubcomponentNodes(
   comp: ParsedComponent,
   basePath: string,
   version: string | undefined,
+  labelBasePath: string = basePath,
 ): TokenNode[] {
   if (comp.subcomponents.length <= 1) return [];
   return comp.subcomponents.map((sc, idx) => {
     const path = `${basePath}.${idx + 1}`;
+    const labelPath = `${labelBasePath}.${idx + 1}`;
     return {
       path,
-      label: getLabel(path, version),
+      label: getLabel(labelPath, version),
       kind: "subcomponent" as const,
       value: sc,
     };
@@ -342,21 +344,50 @@ function buildSubcomponentNodes(
 
 function buildComponentNodes(
   rep: ParsedRep,
-  fieldPath: string,
+  pathPrefix: string,
   sep: Separators,
   version: string | undefined,
+  /** When components are nested under a repetition, the *label-resolution*
+   *  path must drop the [idx] suffix because the dictionary keys components
+   *  by SEG-N.M, not SEG-N[idx].M. Pass the bare field path here. */
+  labelPathPrefix: string = pathPrefix,
 ): TokenNode[] {
   if (rep.components.length <= 1) return [];
   return rep.components.map((comp, idx) => {
-    const compPath = `${fieldPath}.${idx + 1}`;
-    const children = buildSubcomponentNodes(comp, compPath, version);
+    const compPath = `${pathPrefix}.${idx + 1}`;
+    const labelPath = `${labelPathPrefix}.${idx + 1}`;
+    const children = buildSubcomponentNodes(comp, compPath, version, labelPath);
     return {
       path: compPath,
-      label: getLabel(compPath, version),
+      label: getLabel(labelPath, version),
       kind: "component" as const,
       value: serializeComponent(comp, sep),
       ...(children.length > 0 ? { children } : {}),
     };
+  });
+}
+
+function buildRepetitionNodes(
+  field: ParsedField,
+  fieldPath: string,
+  sep: Separators,
+  version: string | undefined,
+): TokenNode[] {
+  if (field.reps.length <= 1) return [];
+  const fieldLabel = getLabel(fieldPath, version);
+  return field.reps.map((rep, idx) => {
+    const repPath = `${fieldPath}[${idx + 1}]`;
+    const compChildren = buildComponentNodes(rep, repPath, sep, version, fieldPath);
+    const node: TokenNode = {
+      path: repPath,
+      label: `${fieldLabel} (rep ${idx + 1} of ${field.reps.length})`,
+      kind: "repetition",
+      value: serializeRep(rep, sep),
+    };
+    if (compChildren.length > 0) {
+      node.children = compChildren;
+    }
+    return node;
   });
 }
 
@@ -376,14 +407,23 @@ function buildFieldNode(
   };
   if (redaction) {
     node.redaction = redaction;
-  } else if (field.reps.length === 1) {
-    // Only build component children for single-rep, non-redacted fields. Multi-rep
-    // expansion would need a "repetition" kind which isn't in the contract; for v1
-    // multi-rep fields render as a single joined value.
+  }
+  // Single-rep fields: components are direct children. Redaction state is
+  // independent — when a CX-shape ID like PID-3 is substituted, the user
+  // still wants to drill into PID-3.1 / PID-3.4 / PID-3.5 to see the parts
+  // of the fake.
+  if (field.reps.length === 1) {
     const compNodes = buildComponentNodes(field.reps[0]!, fieldPath, sep, version);
     if (compNodes.length > 0) {
       node.children = compNodes;
     }
+  } else if (field.reps.length > 1) {
+    // Multi-rep fields: each `~`-separated repetition becomes its own child
+    // node with path `SEG-N[idx]` (1-indexed brackets). Components nest
+    // inside reps via `SEG-N[idx].M`. Field-level value stays as the joined
+    // serialized text so you can still copy/scan the whole thing in one
+    // glance; the repetition children are for drill-down.
+    node.children = buildRepetitionNodes(field, fieldPath, sep, version);
   }
   return node;
 }
