@@ -46,3 +46,25 @@ export type {
 } from "./types.js";
 
 export { DEFAULT_STRATEGIES } from "./types.js";
+
+// DICOM SR header redaction surface (Phase 3).
+export { createDicomRedactor } from "./dicom/redactor.js";
+export {
+  isSrSopClass,
+  getSrSopClassName,
+  KNOWN_SR_SOP_CLASSES,
+  SR_SOP_CLASS_PREFIX,
+} from "./dicom/sop-classes.js";
+export {
+  DEFAULT_DICOM_SR_RULES,
+  DEFAULT_DICOM_SR_RULE_PACK,
+} from "./dicom/rules.js";
+export type {
+  DicomFinding,
+  DicomRedactor,
+  DicomRedactorConfig,
+  DicomRedactResult,
+  DicomRetainProfile,
+  DicomRule,
+  DicomRulePack,
+} from "./dicom/types.js";
