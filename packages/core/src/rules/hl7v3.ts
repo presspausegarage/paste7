@@ -6,6 +6,13 @@
 // (rooted via `\/X\/` rather than `^/Root/X/`), so the same rule fires
 // regardless of the interaction wrapper.
 //
+// RIM Role/Entity split: in v3 messaging `<patient>` is the Role and
+// `<patientPerson>` is the Person Entity that plays it. The Role carries
+// `<id>`; the Entity carries `<name>`/`<birthTime>`/`<addr>`/`<telecom>`.
+// Some simpler v3 dialects flatten this and put name/birthTime/addr/
+// telecom directly under `<patient>`. The non-id patterns make
+// `/patientPerson` optional so both structures redact.
+//
 // Coverage scope per the rescope decision: only paths shared with CDA. Full
 // per-interaction message-type catalogs are deferred to user-driven demand.
 
@@ -20,27 +27,27 @@ export const HL7V3_RULES: RulePack = {
     // registry messages). These mirror recordTarget but with v3-flavored
     // wrappers. Same patient-data shape underneath.
     {
-      pattern: /\/subject\b.*\/patient\/name\/(?:given|family|prefix|suffix)$/,
+      pattern: /\/subject\b.*\/patient(?:\/patientPerson)?\/name\/(?:given|family|prefix|suffix)$/,
       category: "name",
       rule: "v3/subject.patient.name",
     },
     {
-      pattern: /\/subject\b.*\/patient\/birthTime\/@value$/,
+      pattern: /\/subject\b.*\/patient(?:\/patientPerson)?\/birthTime\/@value$/,
       category: "date",
       rule: "v3/subject.patient.birthTime",
     },
     {
-      pattern: /\/subject\b.*\/patient\/id\/@extension$/,
+      pattern: /\/subject\b.*\/patient(?:\/patientPerson)?\/id\/@extension$/,
       category: "id",
       rule: "v3/subject.patient.id",
     },
     {
-      pattern: /\/subject\b.*\/patient\/addr\/(?:streetAddressLine|city|county|postalCode)$/,
+      pattern: /\/subject\b.*\/patient(?:\/patientPerson)?\/addr\/(?:streetAddressLine|city|county|postalCode)$/,
       category: "address",
       rule: "v3/subject.patient.addr",
     },
     {
-      pattern: /\/subject\b.*\/patient\/telecom\/@value$/,
+      pattern: /\/subject\b.*\/patient(?:\/patientPerson)?\/telecom\/@value$/,
       category: "phone",
       rule: "v3/subject.patient.telecom",
     },

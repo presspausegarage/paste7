@@ -342,4 +342,56 @@ describe("HL7 v3 rule pack", () => {
     const result = await engine.redact(V3_MSG);
     expect(result.redacted).toContain("MSG-001");
   });
+
+  // Standard PRPA messaging uses the RIM Role/Entity split — patient.id is
+  // on the Role, but name/birthTime/addr/telecom live under patientPerson.
+  // Regression guard for the patternPerson nesting that the original v3 rules
+  // did not match (caught 2026-05-01 during runtime smoke testing).
+  const PRPA_MSG =
+    `<?xml version="1.0"?>` +
+    `<PRPA_IN201304UV02 xmlns="urn:hl7-org:v3">` +
+    `<id extension="MSG-PRPA-001"/>` +
+    `<controlActProcess>` +
+    `<subject>` +
+    `<registrationEvent>` +
+    `<subject1>` +
+    `<patient>` +
+    `<id root="2.16.840.1.113883.19.5" extension="MRN-PRPA-77777"/>` +
+    `<patientPerson>` +
+    `<name><given>Jane</given><family>Doe</family></name>` +
+    `<telecom value="tel:+14075550123"/>` +
+    `<birthTime value="19850412"/>` +
+    `<addr><streetAddressLine>123 Fake Street</streetAddressLine>` +
+    `<city>Orlando</city><state>FL</state><postalCode>32801</postalCode></addr>` +
+    `</patientPerson>` +
+    `</patient>` +
+    `</subject1>` +
+    `</registrationEvent>` +
+    `</subject>` +
+    `</controlActProcess>` +
+    `</PRPA_IN201304UV02>`;
+
+  it("redacts patientPerson-nested fields (RIM Role/Entity split)", async () => {
+    const engine = createEngine();
+    const result = await engine.redact(PRPA_MSG);
+    expect(result.redacted).not.toContain("MRN-PRPA-77777");
+    expect(result.redacted).not.toContain(">Jane<");
+    expect(result.redacted).not.toContain(">Doe<");
+    expect(result.redacted).not.toContain("tel:+14075550123");
+    expect(result.redacted).not.toContain("19850412");
+    expect(result.redacted).not.toContain("123 Fake Street");
+    expect(result.redacted).not.toContain(">Orlando<");
+    expect(result.redacted).not.toContain(">32801<");
+  });
+
+  it("emits findings for every PRPA patientPerson field", async () => {
+    const engine = createEngine();
+    const result = await engine.redact(PRPA_MSG);
+    const ruleIds = new Set(result.findings.map((f) => f.rule));
+    expect(ruleIds.has("v3/subject.patient.id")).toBe(true);
+    expect(ruleIds.has("v3/subject.patient.name")).toBe(true);
+    expect(ruleIds.has("v3/subject.patient.birthTime")).toBe(true);
+    expect(ruleIds.has("v3/subject.patient.telecom")).toBe(true);
+    expect(ruleIds.has("v3/subject.patient.addr")).toBe(true);
+  });
 });
