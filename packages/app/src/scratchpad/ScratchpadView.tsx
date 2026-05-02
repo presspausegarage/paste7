@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createEngine } from "@paste7/core";
 import type { Engine, Finding, Format, RedactResult } from "@paste7/core";
-import { Editor } from "../shared/monaco.js";
+import type { editor as MonacoEditor } from "monaco-editor";
+import { Editor, monaco } from "../shared/monaco.js";
 import { FindingsPanel } from "./FindingsPanel.js";
 import { TokenTreeView } from "./TokenTreeView.js";
 
 const NO_FINDINGS: ReadonlyArray<Finding> = [];
 
-type RedactedView = "raw" | "tree";
 type FormatChoice = Format | "auto";
 
 const FORMAT_OPTIONS: ReadonlyArray<{ value: FormatChoice; label: string }> = [
@@ -36,25 +36,32 @@ const EDITOR_OPTIONS = {
 
 export function ScratchpadView() {
   const [engine] = useState<Engine>(() => createEngine());
-  const [input, setInput] = useState<string>("");
-  const debouncedInput = useDebouncedValue(input, 250);
+  const [content, setContent] = useState<string>("");
+  const debouncedContent = useDebouncedValue(content, 250);
   const [redactState, setRedactState] = useState<RedactState>({ status: "idle" });
-  const [redactedView, setRedactedView] = useState<RedactedView>("raw");
   const [formatChoice, setFormatChoice] = useState<FormatChoice>("auto");
-  const [copyToast, setCopyToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ kind: "ok" | "warn" | "info"; text: string } | null>(null);
 
+  const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
+  // Format choice + engine accessed inside paste handler — keep refs current.
+  const formatChoiceRef = useRef(formatChoice);
+  formatChoiceRef.current = formatChoice;
+  const engineRef = useRef(engine);
+
+  // Debounced re-redact for findings/tree updates as the user types/edits.
+  // The editor content IS the redacted form (raw PHI never reaches the editor
+  // because the custom Ctrl+V handler redacts before insertion). Re-redacting
+  // already-redacted content is a no-op — bindings cache stabilizes fakes.
   useEffect(() => {
-    if (debouncedInput.trim() === "") {
+    if (debouncedContent.trim() === "") {
       setRedactState({ status: "idle" });
       return;
     }
-
     let cancelled = false;
     setRedactState({ status: "redacting" });
-
     const options = formatChoice === "auto" ? undefined : { format: formatChoice };
     engine
-      .redact(debouncedInput, options)
+      .redact(debouncedContent, options)
       .then((result) => {
         if (cancelled) return;
         setRedactState({ status: "ok", result });
@@ -64,39 +71,111 @@ export function ScratchpadView() {
         const message = error instanceof Error ? error.message : String(error);
         setRedactState({ status: "error", message });
       });
-
     return () => {
       cancelled = true;
     };
-  }, [debouncedInput, engine, formatChoice]);
+  }, [debouncedContent, engine, formatChoice]);
 
-  const redactedText = redactState.status === "ok" ? redactState.result.redacted : "";
   const findings = redactState.status === "ok" ? redactState.result.findings : NO_FINDINGS;
 
-  const showCopyToast = (label: string) => {
-    setCopyToast(label);
-    window.setTimeout(() => setCopyToast(null), 1800);
+  const showToast = (kind: "ok" | "warn" | "info", text: string) => {
+    setToast({ kind, text });
+    window.setTimeout(() => setToast(null), 2400);
+  };
+
+  // Custom Ctrl+V: prevents raw PHI from ever appearing in the editor by
+  // redacting clipboard text before inserting. Image clipboard items are
+  // detected and routed to a Phase 6 stub for future OCR; for now just
+  // surfaces a "coming soon" notice so the user knows the wire exists.
+  const handleCustomPaste = async () => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    let clipboardItems: ClipboardItems | null = null;
+    try {
+      clipboardItems = await navigator.clipboard.read();
+    } catch {
+      // Browsers without clipboard.read fall back to readText.
+      clipboardItems = null;
+    }
+
+    // Image-paste detection — Phase 6 hook.
+    if (clipboardItems !== null) {
+      for (const item of clipboardItems) {
+        const imageType = item.types.find((t) => t.startsWith("image/"));
+        if (imageType !== undefined) {
+          showToast("info", "Image paste detected — OCR coming in Phase 6.");
+          return;
+        }
+      }
+    }
+
+    // Text path: read, redact, insert redacted at the current selection.
+    let text: string;
+    try {
+      text = await navigator.clipboard.readText();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      showToast("warn", `clipboard read failed: ${message}`);
+      return;
+    }
+    if (text === "") return;
+
+    const opts = formatChoiceRef.current === "auto"
+      ? undefined
+      : { format: formatChoiceRef.current as Format };
+    let result: RedactResult;
+    try {
+      result = await engineRef.current.redact(text, opts);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      showToast("warn", `paste blocked: ${message}`);
+      return;
+    }
+
+    const selection = editor.getSelection() ?? new monaco.Selection(1, 1, 1, 1);
+    editor.executeEdits("paste-redact", [
+      {
+        range: selection,
+        text: result.redacted,
+        forceMoveMarkers: true,
+      },
+    ]);
+    showToast("ok", `pasted · ${result.findings.length} redaction${result.findings.length === 1 ? "" : "s"}`);
+  };
+
+  const onEditorMount = (editor: MonacoEditor.IStandaloneCodeEditor) => {
+    editorRef.current = editor;
+    // Override Ctrl+V (and Cmd+V) so raw clipboard contents never reach the
+    // editor without going through redaction first.
+    editor.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV,
+      () => {
+        void handleCustomPaste();
+      },
+    );
   };
 
   const copyRedacted = async () => {
-    if (redactState.status !== "ok") return;
-    await navigator.clipboard.writeText(redactState.result.redacted);
-    showCopyToast("copied redacted");
+    if (content === "") return;
+    await navigator.clipboard.writeText(content);
+    showToast("ok", "copied redacted");
   };
 
-  const copyOriginal = async () => {
-    if (input === "") return;
-    await navigator.clipboard.writeText(input);
-    showCopyToast("copied original");
+  const clearAll = () => {
+    setContent("");
+    setRedactState({ status: "idle" });
+    engine.reset();
+    showToast("info", "cleared session");
   };
-
-  const canCopyRedacted = redactState.status === "ok";
-  const canCopyOriginal = input !== "";
 
   return (
     <div className="scratchpad-view">
       <header className="scratchpad-header">
-        <div className="scratchpad-title">Scratchpad</div>
+        <div className="scratchpad-title">
+          <span className="scratchpad-title-text">Scratchpad</span>
+          <span className="scratchpad-subtitle">paste-and-redact</span>
+        </div>
         <div className="scratchpad-toolbar">
           <label className="format-select-label">
             Format
@@ -111,24 +190,24 @@ export function ScratchpadView() {
             </select>
           </label>
           <FormatBadge state={redactState} choice={formatChoice} />
-          <div className="copy-group" role="group" aria-label="Copy actions">
+          <div className="copy-group" role="group" aria-label="Actions">
             <button
               type="button"
               className="copy-btn copy-btn-primary"
               onClick={copyRedacted}
-              disabled={!canCopyRedacted}
-              title="Copy the redacted output"
+              disabled={content === ""}
+              title="Copy the redacted content to clipboard"
             >
-              Copy redacted
+              Copy
             </button>
             <button
               type="button"
               className="copy-btn copy-btn-secondary"
-              onClick={copyOriginal}
-              disabled={!canCopyOriginal}
-              title="Copy the original pasted content (contains PHI)"
+              onClick={clearAll}
+              disabled={content === ""}
+              title="Clear the editor and reset identity bindings"
             >
-              Copy original
+              Clear
             </button>
           </div>
         </div>
@@ -136,50 +215,46 @@ export function ScratchpadView() {
 
       <div className="scratchpad-body">
         <div className="scratchpad-panes">
-          <section className="scratchpad-pane">
-            <div className="scratchpad-pane-label">Paste</div>
+          <section className="scratchpad-pane scratchpad-pane-paste">
+            <div className="scratchpad-pane-label">
+              <span className="pane-label-stripe pane-label-stripe-paste" />
+              <span className="pane-label-text">Paste</span>
+              <span className="pane-label-hint">text now · screenshots in Phase 6</span>
+            </div>
             <div className="scratchpad-editor-wrap">
               <Editor
                 height="100%"
                 language="plaintext"
                 theme="vs-dark"
-                value={input}
-                onChange={(value) => setInput(value ?? "")}
+                value={content}
+                onMount={onEditorMount}
+                onChange={(value) => setContent(value ?? "")}
                 options={EDITOR_OPTIONS}
               />
+              {content === "" && (
+                <div className="scratchpad-paste-hint" aria-hidden="true">
+                  <div className="scratchpad-paste-hint-glyph">⎘</div>
+                  <div className="scratchpad-paste-hint-text">
+                    Paste content here. Raw PHI is redacted before it ever appears.
+                  </div>
+                  <div className="scratchpad-paste-hint-shortcut">Ctrl + V</div>
+                </div>
+              )}
             </div>
           </section>
 
-          <section className="scratchpad-pane">
-            <div className="scratchpad-pane-label scratchpad-pane-label-row">
-              <span>Redacted</span>
-              <div className="view-toggle">
-                <button
-                  type="button"
-                  className={"view-toggle-btn" + (redactedView === "raw" ? " is-active" : "")}
-                  onClick={() => setRedactedView("raw")}
-                >
-                  Raw
-                </button>
-                <button
-                  type="button"
-                  className={"view-toggle-btn" + (redactedView === "tree" ? " is-active" : "")}
-                  onClick={() => setRedactedView("tree")}
-                >
-                  Tree
-                </button>
-              </div>
+          <section className="scratchpad-pane scratchpad-pane-tree">
+            <div className="scratchpad-pane-label">
+              <span className="pane-label-stripe pane-label-stripe-tree" />
+              <span className="pane-label-text">Tokenized values</span>
+              {redactState.status === "ok" && (
+                <span className="pane-label-meta">
+                  {redactState.result.tree.nodes.length} segment{redactState.result.tree.nodes.length === 1 ? "" : "s"}
+                </span>
+              )}
             </div>
             <div className="scratchpad-editor-wrap">
-              {redactedView === "raw" ? (
-                <Editor
-                  height="100%"
-                  language="plaintext"
-                  theme="vs-dark"
-                  value={redactedText}
-                  options={{ ...EDITOR_OPTIONS, readOnly: true }}
-                />
-              ) : redactState.status === "ok" ? (
+              {redactState.status === "ok" ? (
                 <TokenTreeView tree={redactState.result.tree} />
               ) : (
                 <div className="tree-empty">
@@ -203,8 +278,10 @@ export function ScratchpadView() {
           PHI mode: ON
         </span>
         <StatusDetail state={redactState} />
-        {copyToast && (
-          <span className="scratchpad-statusbar-toast">{copyToast}</span>
+        {toast && (
+          <span className={`scratchpad-statusbar-toast scratchpad-statusbar-toast-${toast.kind}`}>
+            {toast.text}
+          </span>
         )}
       </footer>
     </div>

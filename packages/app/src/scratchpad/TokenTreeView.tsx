@@ -60,7 +60,12 @@ function NodeBody({
 }) {
   return (
     <>
-      <span className={`tree-kind tree-kind-${node.kind}`}>{node.kind}</span>
+      <span
+        className={`tree-path tree-path-${node.kind}`}
+        title={`${node.kind} · ${node.path}`}
+      >
+        {displayPath(node.path)}
+      </span>
       <span className="tree-label" title={node.path}>{node.label}</span>
       {childCount !== undefined && (
         <span className="tree-childcount">{childCount}</span>
@@ -68,6 +73,35 @@ function NodeBody({
       {childCount === undefined && <NodeValue node={node} isRedacted={isRedacted} />}
     </>
   );
+}
+
+/**
+ * Format a path for the badge slot:
+ * - HL7 v2 paths (`MSH`, `PID-3.1`) — verbatim, they're already compact
+ * - XML paths (`/ClinicalDocument/recordTarget/patientRole/patient/name/given`)
+ *   — last two segments joined, e.g. `name/given`
+ * - XML attribute paths (`.../birthTime/@value`) — last element + attribute,
+ *   e.g. `birthTime/@value`
+ * - FHIR JSON paths (`Patient.name[0].given[0]`) — last two segments,
+ *   e.g. `name[0].given[0]`
+ *
+ * Full path stays available via the `title` attribute on the parent span.
+ */
+function displayPath(path: string): string {
+  if (path === "") return "";
+  if (path.startsWith("/")) {
+    const parts = path.split("/").filter((p) => p.length > 0);
+    if (parts.length <= 2) return parts.join("/");
+    return parts.slice(-2).join("/");
+  }
+  if (path.includes(".") && /^[A-Z][A-Za-z]/.test(path) && !/^[A-Z]{3}-/.test(path)) {
+    // FHIR-JSON style: starts with capital letter (resourceType) and dotted.
+    const parts = path.split(".");
+    if (parts.length <= 2) return path;
+    return parts.slice(-2).join(".");
+  }
+  // HL7 v2 (MSH, PID-3, PID-3.1) and anything else — show as-is.
+  return path;
 }
 
 function NodeValue({ node, isRedacted }: { node: TokenNode; isRedacted: boolean }) {
