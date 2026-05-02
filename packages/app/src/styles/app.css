@@ -1569,19 +1569,49 @@ button {
 
 .dicom-header {
   flex-shrink: 0;
-  height: 42px;
-  padding: 0 18px;
+  height: 50px;
+  padding: 0 20px;
   display: flex;
   align-items: center;
   gap: 16px;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-2);
+  background:
+    linear-gradient(180deg, var(--bg-2) 0%, #0f1322 100%),
+    radial-gradient(circle at 20% 50%, rgba(61, 168, 142, 0.05), transparent 40%);
+  background-blend-mode: screen;
+  position: relative;
+}
+
+.dicom-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(61, 168, 142, 0.25), transparent);
+  pointer-events: none;
 }
 
 .dicom-title {
-  font-size: 13px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.dicom-title-text {
+  font-size: var(--fs-lg);
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: var(--tracking-hero);
+  color: var(--text);
+}
+
+.dicom-subtitle {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-3);
 }
 
 .dicom-toolbar {
@@ -1677,17 +1707,34 @@ button {
 .dicom-dropzone {
   height: 100%;
   min-height: 320px;
-  border: 1px dashed var(--border-2);
-  border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.12s, background 0.12s;
+  transition: background var(--t-fast);
+  background: radial-gradient(
+    ellipse at 50% 60%,
+    rgba(61, 168, 142, 0.04) 0%,
+    transparent 60%
+  );
 }
 
 .dicom-dropzone.is-active {
-  border-color: var(--accent);
   background: var(--accent-soft);
+}
+
+.dicom-dropzone-btn {
+  font-size: var(--fs-sm);
+  padding: 8px 20px;
+}
+
+.dicom-dropzone-subtitle {
+  text-align: center;
+  line-height: var(--lh-copy);
+  max-width: 340px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-style: normal;
+  color: var(--text-3);
 }
 
 .dicom-dropzone-inner {

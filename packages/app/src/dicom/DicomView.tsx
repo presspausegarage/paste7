@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { createDicomRedactor } from "@paste7/core";
 import type { DicomFinding, DicomRedactResult } from "@paste7/core";
+import { PhiPolicyModal } from "../shared/PhiPolicyModal.js";
 import {
   pickDicomFile,
   readDicomFile,
@@ -32,6 +33,7 @@ export function DicomView() {
     message?: string;
   }>({ kind: "idle" });
   const [dragActive, setDragActive] = useState(false);
+  const [showPolicy, setShowPolicy] = useState(false);
 
   // Listen for Tauri-native drag-and-drop events on the WebView.
   useEffect(() => {
@@ -149,8 +151,19 @@ export function DicomView() {
   return (
     <div className="dicom-view">
       <header className="dicom-header">
-        <div className="dicom-title">DICOM SR</div>
+        <div className="dicom-title">
+          <span className="dicom-title-text">DICOM SR</span>
+          <span className="dicom-subtitle">structured report</span>
+        </div>
         <div className="dicom-toolbar">
+          <button
+            type="button"
+            className="phi-policy-trigger"
+            onClick={() => setShowPolicy(true)}
+            title="Show what each PHI category does and the redaction strategy applied"
+          >
+            Policy
+          </button>
           <button type="button" className="dicom-btn" onClick={handlePickFile}>
             Open .dcm…
           </button>
@@ -202,6 +215,8 @@ export function DicomView() {
         )}
       </div>
 
+      {showPolicy && <PhiPolicyModal onClose={() => setShowPolicy(false)} />}
+
       <footer className="dicom-statusbar">
         <span className="phi-badge" title="PHI redaction is always on; in-memory only.">
           <span className="phi-dot" />
@@ -233,16 +248,13 @@ function DropZone({ active, onPick }: { active: boolean; onPick: () => void }) {
   return (
     <div className={"dicom-dropzone" + (active ? " is-active" : "")}>
       <div className="dicom-dropzone-inner">
-        <div className="dicom-dropzone-icon">⌹</div>
-        <div className="dicom-dropzone-title">Drop a DICOM SR file here</div>
-        <div className="dicom-dropzone-subtitle">
-          Structured Report headers only — non-SR DICOM is rejected. Pixel data and
-          ContentSequence are preserved verbatim. In-memory only; original is never
-          overwritten.
-        </div>
-        <button type="button" className="dicom-btn dicom-btn-primary" onClick={onPick}>
-          Or open via dialog
+        <div className="caption">Drop a .dcm file here, or</div>
+        <button type="button" className="dicom-btn dicom-btn-primary dicom-dropzone-btn" onClick={onPick}>
+          Open .dcm file…
         </button>
+        <div className="dicom-dropzone-subtitle caption">
+          SR headers only — non-SR DICOM rejected. Pixel data and<br/>ContentSequence preserved verbatim. In-memory only.
+        </div>
       </div>
     </div>
   );
