@@ -1,12 +1,14 @@
 export type WorkflowId = "scratchpad" | "dicom";
 
-export type WorkflowGroup = "paste" | "file";
-
 export interface WorkflowMeta {
   id: WorkflowId;
+  /** Full name for the tooltip headline. */
   label: string;
-  group: WorkflowGroup;
-  shortLabel: string;
+  /** Single-character glyph for the icon-rail sidebar. */
+  glyph: string;
+  /** Caption-styled sub-label shown under the tooltip headline. */
+  sub: string;
+  /** Hover tooltip body text (sentence-form). */
   description: string;
 }
 
@@ -14,21 +16,16 @@ export const WORKFLOWS: readonly WorkflowMeta[] = [
   {
     id: "scratchpad",
     label: "Scratchpad",
-    shortLabel: "Paste",
-    group: "paste",
+    glyph: "⎘",
+    sub: "Paste & redact",
     description:
       "Paste HL7 v2, HL7 v3, C-CDA, or FHIR (JSON/XML); see it tokenized and redacted.",
   },
   {
     id: "dicom",
-    label: "DICOM",
-    shortLabel: "DICOM",
-    group: "file",
-    description: "Drop a DICOM file; inspect headers and export a sanitized copy.",
+    label: "DICOM SR",
+    glyph: "⌹",
+    sub: "File drop",
+    description: "Drop a DICOM SR file; inspect headers and export a sanitized copy.",
   },
 ] as const;
-
-export const GROUP_LABELS: Record<WorkflowGroup, string> = {
-  paste: "Paste",
-  file: "File",
-};

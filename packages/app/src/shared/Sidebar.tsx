@@ -1,5 +1,6 @@
-import { GROUP_LABELS, WORKFLOWS } from "./workflows.js";
-import type { WorkflowGroup, WorkflowId } from "./workflows.js";
+import { useState } from "react";
+import { WORKFLOWS } from "./workflows.js";
+import type { WorkflowId, WorkflowMeta } from "./workflows.js";
 
 interface Props {
   active: WorkflowId;
@@ -7,40 +8,73 @@ interface Props {
 }
 
 export function Sidebar({ active, onSelect }: Props) {
-  const groups: WorkflowGroup[] = ["paste", "file"];
+  const [hoveredId, setHoveredId] = useState<WorkflowId | null>(null);
 
   return (
     <aside className="sidebar">
-      <header className="sidebar-header">
-        <span className="sidebar-title">paste7</span>
-        <span className="sidebar-version">v0.0.0</span>
-      </header>
+      <div className="sidebar-wordmark">
+        <span className="sidebar-wordmark-text">p7</span>
+      </div>
+
       <nav className="sidebar-nav">
-        {groups.map((group) => (
-          <section key={group} className="sidebar-section">
-            <h2 className="sidebar-group-label">{GROUP_LABELS[group]}</h2>
-            <ul className="sidebar-list">
-              {WORKFLOWS.filter((w) => w.group === group).map((w) => (
-                <li key={w.id}>
-                  <button
-                    type="button"
-                    className={
-                      "sidebar-item" + (active === w.id ? " is-active" : "")
-                    }
-                    onClick={() => onSelect(w.id)}
-                    title={w.description}
-                  >
-                    <span className="sidebar-item-label">{w.label}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
+        {WORKFLOWS.map((item) => (
+          <SidebarItem
+            key={item.id}
+            item={item}
+            isActive={active === item.id}
+            isHovered={hoveredId === item.id}
+            onSelect={() => onSelect(item.id)}
+            onHoverStart={() => setHoveredId(item.id)}
+            onHoverEnd={() =>
+              setHoveredId((curr) => (curr === item.id ? null : curr))
+            }
+          />
         ))}
       </nav>
-      <footer className="sidebar-footer">
-        <span className="sidebar-badge">AI assisted</span>
-      </footer>
+
+      <div className="sidebar-footer">
+        <span className="sidebar-version">v0</span>
+        <span className="sidebar-ai-badge" title="AI-assisted build">AI</span>
+      </div>
     </aside>
+  );
+}
+
+interface ItemProps {
+  item: WorkflowMeta;
+  isActive: boolean;
+  isHovered: boolean;
+  onSelect: () => void;
+  onHoverStart: () => void;
+  onHoverEnd: () => void;
+}
+
+function SidebarItem({
+  item,
+  isActive,
+  isHovered,
+  onSelect,
+  onHoverStart,
+  onHoverEnd,
+}: ItemProps) {
+  return (
+    <button
+      type="button"
+      className={"sidebar-item" + (isActive ? " is-active" : "")}
+      onClick={onSelect}
+      onMouseEnter={onHoverStart}
+      onMouseLeave={onHoverEnd}
+      title={item.label}
+      aria-label={item.label}
+    >
+      <span className="sidebar-item-glyph">{item.glyph}</span>
+      {isHovered && (
+        <div className="sidebar-tooltip" role="tooltip">
+          <span className="sidebar-tooltip-label">{item.label}</span>
+          <span className="sidebar-tooltip-sub">{item.sub}</span>
+          <span className="sidebar-tooltip-arrow" aria-hidden="true" />
+        </div>
+      )}
+    </button>
   );
 }
