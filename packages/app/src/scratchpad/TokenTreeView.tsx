@@ -4,15 +4,48 @@ interface Props {
   tree: TokenTree;
 }
 
+/** A segment "has PHI" if any direct child carries a redaction. */
+function hasPhi(node: TokenNode): boolean {
+  return (node.children ?? []).some((c) => c.redaction !== undefined);
+}
+
 export function TokenTreeView({ tree }: Props) {
   if (tree.nodes.length === 0) {
     return <div className="tree-empty">Empty tree.</div>;
   }
+
+  // Focused view: only segments with PHI findings are shown in the tree;
+  // clean segments collapse into a single footer summary row. Within a
+  // visible segment, only the redacted fields render — but those fields keep
+  // their full component/subcomponent children so drill-down stays intact.
+  const visibleNodes = tree.nodes.filter(hasPhi);
+  const hiddenNodes = tree.nodes.filter((n) => !hasPhi(n));
+
   return (
     <div className="tree-view">
-      {tree.nodes.map((node, i) => (
-        <TreeNode key={`${node.path}-${i}`} node={node} depth={0} />
-      ))}
+      {visibleNodes.map((node, i) => {
+        const phiChildren = (node.children ?? []).filter(
+          (c) => c.redaction !== undefined,
+        );
+        return (
+          <TreeNode
+            key={`${node.path}-${i}`}
+            node={{ ...node, children: phiChildren }}
+            depth={0}
+          />
+        );
+      })}
+
+      {hiddenNodes.length > 0 && (
+        <div className="tree-row-hidden-summary">
+          <span className="tree-hidden-label">
+            {hiddenNodes.length} segment{hiddenNodes.length !== 1 ? "s" : ""} with no findings —
+          </span>
+          <span className="tree-hidden-paths">
+            {hiddenNodes.map((n) => n.path).join(", ")}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -34,11 +67,15 @@ function TreeNode({ node, depth }: NodeProps) {
     );
   }
 
+  // Segment branches (depth 0) report a PHI-finding count — their children
+  // are pre-filtered to redacted fields. Deeper branches (a redacted field's
+  // component children) report a plain structural count.
   const childCount = node.children!.length;
+  const childCountLabel = depth === 0 ? `${childCount} PHI` : `${childCount}`;
   return (
     <details className="tree-row tree-row-branch" open={depth === 0}>
       <summary className="tree-row-summary" style={{ paddingLeft: `${10 + depth * 14}px` }}>
-        <NodeBody node={node} isRedacted={isRedacted} childCount={childCount} />
+        <NodeBody node={node} isRedacted={isRedacted} childCountLabel={childCountLabel} />
       </summary>
       <div className="tree-children">
         {node.children!.map((child, i) => (
@@ -52,11 +89,11 @@ function TreeNode({ node, depth }: NodeProps) {
 function NodeBody({
   node,
   isRedacted,
-  childCount,
+  childCountLabel,
 }: {
   node: TokenNode;
   isRedacted: boolean;
-  childCount?: number;
+  childCountLabel?: string;
 }) {
   const pathClass = isRedacted
     ? `tree-path tree-path-redacted tree-path-cat-${node.redaction!.category}`
@@ -70,10 +107,10 @@ function NodeBody({
         {displayPath(node.path)}
       </span>
       <span className="tree-label" title={node.path}>{node.label}</span>
-      {childCount !== undefined && (
-        <span className="tree-childcount">{childCount}</span>
+      {childCountLabel !== undefined && (
+        <span className="tree-childcount">{childCountLabel}</span>
       )}
-      {childCount === undefined && <NodeValue node={node} isRedacted={isRedacted} />}
+      {childCountLabel === undefined && <NodeValue node={node} isRedacted={isRedacted} />}
     </>
   );
 }
