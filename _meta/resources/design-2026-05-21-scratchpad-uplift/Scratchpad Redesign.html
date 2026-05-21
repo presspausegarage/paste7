@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>paste7 — Scratchpad Redesign</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; overflow: hidden; }
+    body { background: #08090f; font-family: sans-serif; -webkit-font-smoothing: antialiased; }
+    select { appearance: auto; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb { background: #2d3760; border-radius: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="scratchpad-data.jsx"></script>
+  <script type="text/babel" src="scratchpad-views.jsx"></script>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "theme": "light"
+    }/*EDITMODE-END*/;
+
+    function App() {
+      const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+      const isDark = tweaks.theme === 'dark';
+
+      return (
+        <>
+          <DesignCanvas>
+            <DCSection id="s1" title="Scratchpad redesign — three directions">
+
+              <DCArtboard id="a1" label="A — Calibrated  ·  DM Sans + JetBrains Mono" width={1280} height={740}>
+                <DirA isDark={isDark} />
+              </DCArtboard>
+
+              <DCArtboard id="a2" label="B — Layered  ·  Outfit + JetBrains Mono" width={1280} height={740}>
+                <DirB isDark={isDark} />
+              </DCArtboard>
+
+              <DCArtboard id="a3" label="C — Elevated  ·  Plus Jakarta Sans + Fira Code" width={1280} height={740}>
+                <DirC isDark={isDark} />
+              </DCArtboard>
+
+            </DCSection>
+          </DesignCanvas>
+
+          <TweaksPanel>
+            <TweakSection label="Appearance">
+              <TweakRadio
+                label="Theme"
+                value={tweaks.theme}
+                options={['dark', 'light']}
+                onChange={v => setTweak('theme', v)}
+              />
+            </TweakSection>
+          </TweaksPanel>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+
+  <template id="__bundler_thumbnail">
+    <svg viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
+      <rect width="120" height="80" fill="#0b0e18"/>
+      <rect x="8" y="8" width="8" height="64" rx="2" fill="#161b2e"/>
+      <rect x="20" y="8" width="92" height="12" rx="2" fill="#161b2e"/>
+      <rect x="20" y="24" width="92" height="28" rx="2" fill="#111524"/>
+      <rect x="24" y="28" width="20" height="4" rx="1" fill="#3da88e" opacity=".7"/>
+      <rect x="24" y="35" width="30" height="3" rx="1" fill="#5c86d6" opacity=".5"/>
+      <rect x="24" y="41" width="25" height="3" rx="1" fill="#d88a3a" opacity=".5"/>
+      <rect x="20" y="56" width="92" height="16" rx="2" fill="#111524"/>
+      <rect x="24" y="60" width="14" height="3" rx="1" fill="#3da88e" opacity=".5"/>
+      <rect x="42" y="60" width="20" height="3" rx="1" fill="#5c86d6" opacity=".4"/>
+    </svg>
+  </template>
+</body>
+</html>

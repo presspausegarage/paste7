@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>paste7 — Scratchpad</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; overflow: hidden; }
+    body { background: #0b0e18; -webkit-font-smoothing: antialiased; }
+    ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-thumb { background: #2d3760; border-radius: 3px; }
+
+    @keyframes fadeUp   { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes rowIn    { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse    { 0%,100% { box-shadow: 0 0 6px #3da88e, 0 0 12px rgba(61,168,142,0.3); } 50% { box-shadow: 0 0 10px #3da88e, 0 0 22px rgba(61,168,142,0.55); } }
+    @keyframes shimmer  { from { background-position: -400px 0; } to { background-position: 400px 0; } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" src="scratchpad-data.jsx"></script>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const T = DARK;
+    const SANS  = "'Outfit', sans-serif";
+    const MONO  = "'JetBrains Mono', monospace";
+    const HD    = { bg:'#111524', surface:'#1c2340', border:'#242d4c', border2:'#2d3760', text:'#e5e9f4', text2:'#9aa5c3', text3:'#5e6884', accent:'#3da88e', accentSoft:'rgba(61,168,142,0.14)', accentBorder:'rgba(61,168,142,0.30)' };
+
+    // ── HIPAA 18 data ───────────────────────────────────────────────────────
+    const HIPAA_18 = [
+      ["name",      "name",       "substitute", "Patient & provider names → deterministic fakes"],
+      ["id",        "id",         "substitute", "MRN, account, NPI → sequential fakes"],
+      ["address",   "address",    "scrub",      "Street, city, county removed; state+zip kept if safe"],
+      ["date",      "date",       "substitute", "Dates shifted ±offset; age >89 → 90"],
+      ["phone",     "phone",      "remove",     "All telephone / fax numbers"],
+      ["email",     "email",      "remove",     "Email addresses"],
+      ["url",       "url",        "remove",     "Web / IP addresses"],
+      ["geo",       "geo",        "scrub",      "Sub-state geographic data"],
+      ["id",        "ssn",        "remove",     "Social security numbers"],
+      ["id",        "npi",        "substitute", "National provider identifiers"],
+      ["id",        "device",     "substitute", "Device identifiers & serial numbers"],
+      ["biometric", "biometric",  "remove",     "Biometric identifiers"],
+      ["biometric", "photo",      "remove",     "Full-face photos and comparable images"],
+      ["id",        "acct",       "substitute", "Account numbers"],
+      ["id",        "cert",       "remove",     "Certificate / license numbers"],
+      ["id",        "vehicle",    "remove",     "Vehicle ID and license plates"],
+      ["id",        "health-plan","substitute", "Health plan beneficiary numbers"],
+      ["free-text", "note",       "scrub",      "Free-text fields: best-effort scrub"],
+    ];
+
+    const STRAT_COLOR = {
+      substitute: { color: '#3da88e', bg: 'rgba(61,168,142,0.10)', border: 'rgba(61,168,142,0.28)' },
+      scrub:      { color: '#5c86d6', bg: 'rgba(92,134,214,0.10)', border: 'rgba(92,134,214,0.28)' },
+      remove:     { color: '#d9534f', bg: 'rgba(217,83,79,0.10)',  border: 'rgba(217,83,79,0.28)'  },
+    };
+
+    // ── PHI Policy Modal ────────────────────────────────────────────────────
+    function PhiPolicyModal({ onClose }) {
+      return (
+        <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(11,14,24,0.88)', display:'flex', alignItems:'center', justifyContent:'center', animation:'fadeIn 0.15s ease' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'#111524', border:'1px solid #2d3760', borderRadius:10, boxShadow:'0 20px 60px rgba(0,0,0,0.6)', width:580, maxWidth:'92vw', maxHeight:'80vh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+            <div style={{ padding:'14px 18px', borderBottom:'1px solid #242d4c', display:'flex', alignItems:'center', justifyContent:'space-between', background:'#161b2e', flexShrink:0 }}>
+              <div>
+                <div style={{ fontFamily:SANS, fontWeight:600, fontSize:14, color:'#e5e9f4', letterSpacing:'-0.01em' }}>PHI Redaction Policy</div>
+                <div style={{ fontFamily:MONO, fontSize:9, letterSpacing:'0.08em', textTransform:'uppercase', color:'#3da88e', marginTop:3 }}>HIPAA Safe Harbor — 18 identifiers</div>
+              </div>
+              <button onClick={onClose} style={{ fontFamily:MONO, fontSize:11, padding:'4px 10px', borderRadius:5, border:'1px solid #2d3760', background:'transparent', color:'#5e6884', cursor:'pointer' }}>✕ close</button>
+            </div>
+            <div style={{ padding:'10px 18px', background:'rgba(216,138,58,0.06)', borderBottom:'1px solid rgba(216,138,58,0.2)', fontFamily:MONO, fontSize:10, color:'#d88a3a', lineHeight:1.55, flexShrink:0 }}>
+              Best-effort de-identification for developer debugging. Not a certified HIPAA Safe Harbor tool.
+            </div>
+            <div style={{ flex:1, overflowY:'auto' }}>
+              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+                <thead>
+                  <tr style={{ background:'#161b2e', position:'sticky', top:0, zIndex:1 }}>
+                    {['Category','Identifier','Strategy','Notes'].map(h => (
+                      <th key={h} style={{ fontFamily:MONO, fontSize:9, letterSpacing:'0.08em', textTransform:'uppercase', color:'#5e6884', textAlign:'left', padding:'8px 12px', borderBottom:'1px solid #242d4c' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {HIPAA_18.map(([cat, id, strat, notes], i) => {
+                    const sc = STRAT_COLOR[strat] || STRAT_COLOR.scrub;
+                    const cc = getCatClr(cat);
+                    return (
+                      <tr key={i} style={{ borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
+                        <td style={{ padding:'6px 12px' }}><span style={{ fontFamily:MONO, fontSize:9, textTransform:'uppercase', letterSpacing:'0.04em', padding:'2px 7px', borderRadius:8, background:cc.bg, color:cc.text, border:`1px solid ${cc.border}` }}>{cat}</span></td>
+                        <td style={{ padding:'6px 12px', fontFamily:MONO, fontSize:11, color:'#9aa5c3' }}>{id}</td>
+                        <td style={{ padding:'6px 12px' }}><span style={{ fontFamily:MONO, fontSize:9, textTransform:'uppercase', letterSpacing:'0.04em', padding:'2px 7px', borderRadius:8, background:sc.bg, color:sc.color, border:`1px solid ${sc.border}` }}>{strat}</span></td>
+                        <td style={{ padding:'6px 12px', fontSize:11, color:'#5e6884', lineHeight:1.45 }}>{notes}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ padding:'10px 18px', borderTop:'1px solid #242d4c', fontFamily:MONO, fontSize:9, color:'#5e6884', letterSpacing:'0.04em', flexShrink:0 }}>DICOM scope: SR header tags only. OCR (Phase 6): HL7 v2 viewer screenshots.</div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Intro screen ────────────────────────────────────────────────────────
+    function IntroScreen({ onEnter }) {
+      return (
+        <div style={{ height:'100%', background:'#0b0e18', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:0, position:'relative', overflow:'hidden' }}>
+          {/* Subtle grid */}
+          <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(circle, rgba(61,168,142,0.06) 1px, transparent 1px)', backgroundSize:'32px 32px', pointerEvents:'none' }} />
+          {/* Glow */}
+          <div style={{ position:'absolute', width:600, height:600, borderRadius:'50%', background:'radial-gradient(circle, rgba(61,168,142,0.07) 0%, transparent 70%)', pointerEvents:'none' }} />
+
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:20, animation:'fadeUp 0.6s ease both', position:'relative' }}>
+            {/* Logo mark */}
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <div style={{ width:36, height:36, borderRadius:9, background:'rgba(61,168,142,0.12)', border:'1px solid rgba(61,168,142,0.3)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <span style={{ fontFamily:MONO, fontSize:13, fontWeight:700, color:'#3da88e', letterSpacing:'0.05em' }}>p7</span>
+              </div>
+            </div>
+
+            {/* Heading */}
+            <div style={{ textAlign:'center' }}>
+              <h1 style={{ fontFamily:SANS, fontSize:42, fontWeight:700, color:'#e5e9f4', letterSpacing:'-0.03em', lineHeight:1.1, marginBottom:14 }}>
+                HL7 Scratchpad
+              </h1>
+              <p style={{ fontFamily:SANS, fontSize:16, fontWeight:400, color:'#5e6884', lineHeight:1.6, maxWidth:420 }}>
+                Paste any HL7 or FHIR message. PHI is detected, tokenized,<br/>and redacted before it ever reaches the screen.
+              </p>
+            </div>
+
+            {/* Feature pills */}
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'center', marginTop:4 }}>
+              {['HL7 v2 · v3', 'C-CDA', 'FHIR JSON · XML', 'HIPAA Safe Harbor', 'Auto-detect'].map(f => (
+                <span key={f} style={{ fontFamily:MONO, fontSize:10, padding:'4px 12px', borderRadius:20, border:'1px solid #242d4c', color:'#5e6884', background:'#111524' }}>{f}</span>
+              ))}
+            </div>
+
+            {/* CTA */}
+            <button
+              onClick={onEnter}
+              style={{ marginTop:12, fontFamily:SANS, fontSize:14, fontWeight:600, padding:'11px 28px', borderRadius:7, background:'#3da88e', color:'#fff', border:'none', cursor:'pointer', letterSpacing:'-0.01em', boxShadow:'0 4px 20px rgba(61,168,142,0.35)' }}
+              onMouseOver={e => e.currentTarget.style.background = '#4ebda0'}
+              onMouseOut={e => e.currentTarget.style.background = '#3da88e'}
+            >
+              Open Scratchpad →
+            </button>
+          </div>
+
+          <div style={{ position:'absolute', bottom:24, fontFamily:MONO, fontSize:9, color:'#2d3760', letterSpacing:'0.06em', textTransform:'uppercase', animation:'fadeUp 0.8s 0.4s ease both' }}>
+            paste7 · v0 · PHI mode always on
+          </div>
+        </div>
+      );
+    }
+
+    // ── Format dropdown ─────────────────────────────────────────────────────
+    const FORMAT_OPTIONS = ['Auto-detect', 'HL7 v2', 'HL7 v3', 'C-CDA', 'FHIR JSON', 'FHIR XML'];
+    function FormatSelect() {
+      const [open, setOpen] = useState(false);
+      const [value, setValue] = useState('Auto-detect');
+      return (
+        <div style={{ position:'relative' }}>
+          <button onClick={() => setOpen(o => !o)} style={{ fontFamily:MONO, fontSize:11, color:HD.text2, background:HD.surface, border:`1px solid ${HD.border2}`, borderRadius:5, padding:'4px 26px 4px 10px', cursor:'pointer', position:'relative', whiteSpace:'nowrap' }}>
+            {value}
+            <span style={{ position:'absolute', right:8, top:'50%', transform:`translateY(-50%) rotate(${open?180:0}deg)`, transition:'transform 0.15s', fontSize:7, color:HD.text3, display:'inline-block' }}>▼</span>
+          </button>
+          {open && (
+            <div style={{ position:'absolute', top:'calc(100% + 4px)', left:0, background:'#161b2e', border:`1px solid ${HD.border2}`, borderRadius:6, overflow:'hidden', boxShadow:'0 8px 28px rgba(0,0,0,0.55)', zIndex:100, minWidth:140 }}>
+              {FORMAT_OPTIONS.map(opt => (
+                <div key={opt} onClick={() => { setValue(opt); setOpen(false); }}
+                  style={{ fontFamily:MONO, fontSize:11, padding:'7px 14px', color: opt===value ? HD.accent : HD.text2, background: opt===value ? 'rgba(61,168,142,0.10)' : 'transparent', cursor:'pointer', borderBottom:'1px solid rgba(255,255,255,0.04)' }}
+                  onMouseOver={e => { if(opt!==value) e.currentTarget.style.background='rgba(255,255,255,0.05)'; }}
+                  onMouseOut={e => { e.currentTarget.style.background = opt===value ? 'rgba(61,168,142,0.10)' : 'transparent'; }}
+                >{opt}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ── Empty state (inside editor) ─────────────────────────────────────────
+    function EmptyState({ onPaste }) {
+      return (
+        <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:20, padding:'24px 40px', animation:'fadeIn 0.3s ease' }}>
+          <div style={{ textAlign:'center', maxWidth:400 }}>
+            <div style={{ fontFamily:MONO, fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color:T.accent, marginBottom:12 }}>paste-and-redact</div>
+            <div style={{ fontFamily:SANS, fontSize:17, fontWeight:600, letterSpacing:'-0.02em', color:T.text, marginBottom:8 }}>Paste a message to begin</div>
+            <div style={{ fontFamily:SANS, fontSize:13, color:T.text3, lineHeight:1.6 }}>PHI is redacted before it appears. Nothing is written to disk.</div>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            {['Ctrl','V'].map((k,i) => (
+              <React.Fragment key={k}>
+                {i>0 && <span style={{ color:T.text3, fontSize:13 }}>+</span>}
+                <span style={{ fontFamily:MONO, fontSize:11, padding:'5px 12px', borderRadius:5, background:T.surface, border:`1px solid ${T.border2}`, color:T.text2 }}>{k}</span>
+              </React.Fragment>
+            ))}
+            <span style={{ fontFamily:SANS, fontSize:13, color:T.text3, marginLeft:6 }}>to paste and redact</span>
+          </div>
+          <button onClick={onPaste} style={{ fontFamily:SANS, fontSize:12, fontWeight:500, padding:'7px 18px', borderRadius:5, background:T.accentSoft, color:T.accent, border:`1px solid ${T.accentBorder}`, cursor:'pointer', letterSpacing:'-0.01em' }}
+            onMouseOver={e => e.currentTarget.style.background='rgba(61,168,142,0.22)'}
+            onMouseOut={e => e.currentTarget.style.background=T.accentSoft}
+          >Try a sample →</button>
+        </div>
+      );
+    }
+
+    // ── Main scratchpad app ─────────────────────────────────────────────────
+    function ScratchpadApp({ onPolicyClick }) {
+      const [phase, setPhase] = useState('empty'); // empty | pasting | done
+      const [visibleRows, setVisibleRows] = useState(0);
+
+      const handlePaste = () => {
+        setPhase('pasting');
+        setTimeout(() => {
+          setPhase('done');
+          let r = 0;
+          const tick = () => { r++; setVisibleRows(r); if(r < TREE_NODES.length + 10) setTimeout(tick, 80); };
+          setTimeout(tick, 200);
+        }, 650);
+      };
+
+      const handleClear = () => { setPhase('empty'); setVisibleRows(0); };
+
+      const hasDone = phase === 'done';
+
+      return (
+        <div style={{ height:'100%', display:'flex', background:T.bg, color:T.text, fontFamily:SANS, fontSize:13, animation:'fadeIn 0.35s ease' }}>
+          {/* Sidebar */}
+          <aside style={{ width:52, flexShrink:0, background:'#111524', borderRight:'1px solid #242d4c', display:'flex', flexDirection:'column', alignItems:'center' }}>
+            <div style={{ height:50, display:'flex', alignItems:'center', justifyContent:'center', borderBottom:'1px solid #242d4c', width:'100%', flexShrink:0 }}>
+              <span style={{ fontFamily:MONO, fontSize:9, letterSpacing:'0.13em', textTransform:'uppercase', color:'#3da88e', fontWeight:700, writingMode:'vertical-rl', transform:'rotate(180deg)', userSelect:'none' }}>p7</span>
+            </div>
+            <nav style={{ flex:1, width:'100%', display:'flex', flexDirection:'column', gap:2, paddingTop:8 }}>
+              <div style={{ height:44, display:'flex', alignItems:'center', justifyContent:'center', borderLeft:'2px solid #3da88e', background:'#161b2e', color:'#3da88e' }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="10" height="11" rx="1.5"/><path d="M6 3V2a2 2 0 014 0v1"/><path d="M5.5 7.5h5M5.5 10h3.5"/></svg>
+              </div>
+              <div style={{ height:44, display:'flex', alignItems:'center', justifyContent:'center', borderLeft:'2px solid transparent', color:'#5e6884' }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3a1 1 0 011-1h5l3 3v8a1 1 0 01-1 1H4a1 1 0 01-1-1V3z"/><path d="M9 2v3.5H12"/><path d="M8 7.5v4M6 9.5h4"/></svg>
+              </div>
+            </nav>
+            <div style={{ paddingBottom:14, display:'flex', flexDirection:'column', alignItems:'center', gap:5, flexShrink:0 }}>
+              <span style={{ fontFamily:MONO, fontSize:8, color:'#5e6884', opacity:0.7 }}>v0</span>
+              <span style={{ fontFamily:MONO, fontSize:7, color:'#5e6884', border:'1px solid #242d4c', borderRadius:3, padding:'1px 4px', opacity:0.55 }}>AI</span>
+            </div>
+          </aside>
+
+          {/* Main */}
+          <div style={{ flex:1, display:'flex', flexDirection:'column', minWidth:0 }}>
+            {/* Header */}
+            <header style={{ height:50, flexShrink:0, padding:'0 20px', display:'flex', alignItems:'center', gap:14, borderBottom:'1px solid #242d4c', background:'#111524' }}>
+              <span style={{ fontFamily:SANS, fontSize:15, fontWeight:600, letterSpacing:'-0.02em', color:'#e5e9f4' }}>Scratchpad</span>
+              <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:10 }}>
+                <label style={{ display:'flex', alignItems:'center', gap:8, fontFamily:MONO, fontSize:9, letterSpacing:'0.07em', textTransform:'uppercase', color:'#5e6884' }}>
+                  Format <FormatSelect />
+                </label>
+                {hasDone && (
+                  <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontFamily:MONO, fontSize:10, padding:'3px 9px', borderRadius:4, border:'1px solid rgba(61,168,142,0.3)', background:'rgba(61,168,142,0.1)', color:'#3da88e', animation:'fadeIn 0.3s ease' }}>
+                    <span style={{ fontSize:8, opacity:0.8, letterSpacing:'0.06em', textTransform:'uppercase' }}>detected</span>
+                    hl7v2
+                    <span style={{ fontSize:9, color:'#5e6884' }}>98%</span>
+                  </span>
+                )}
+                <div style={{ display:'inline-flex', borderRadius:5, overflow:'hidden', border:'1px solid #2d3760' }}>
+                  <button onClick={handlePaste} disabled={hasDone} style={{ fontFamily:MONO, fontSize:10, padding:'5px 12px', color:'#fff', background: hasDone ? 'rgba(61,168,142,0.5)' : '#3da88e', borderRight:'1px solid rgba(0,0,0,0.18)', cursor: hasDone ? 'default' : 'pointer', fontWeight:600 }}>{hasDone ? 'Copied' : 'Paste sample'}</button>
+                  <button onClick={handleClear} disabled={!hasDone} style={{ fontFamily:MONO, fontSize:10, padding:'5px 12px', color:'#9aa5c3', background:'#1c2340', cursor: hasDone ? 'pointer' : 'not-allowed', opacity: hasDone ? 1 : 0.45 }}>Clear</button>
+                </div>
+              </div>
+            </header>
+
+            {/* Body */}
+            <div style={{ flex:1, display:'flex', flexDirection:'column', minHeight:0 }}>
+
+              {/* Paste pane */}
+              <div style={{ flex:1, display:'flex', flexDirection:'column', borderBottom:`1px solid ${T.border}`, minHeight:0 }}>
+                <div style={{ height:34, flexShrink:0, display:'flex', alignItems:'center', gap:9, padding:'0 14px', background:T.surface, borderBottom:`1px solid ${T.border}` }}>
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={T.text3} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
+                    <path d="M3 2.5h4.5L9 4v6.5a.5.5 0 01-.5.5h-5.5a.5.5 0 01-.5-.5v-8a.5.5 0 01.5-.5z"/>
+                    <path d="M7.5 2.5V4H9"/><path d="M4.5 6h4M4.5 7.5h3"/>
+                  </svg>
+                  <span style={{ fontFamily:SANS, fontSize:12, fontWeight:500, color:T.text2 }}>Paste</span>
+                </div>
+                <div style={{ flex:1, minHeight:0, position:'relative' }}>
+                  {phase === 'empty' && <EmptyState onPaste={handlePaste} />}
+                  {phase === 'pasting' && (
+                    <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center', background:'#0d1117', flexDirection:'column', gap:14 }}>
+                      <div style={{ width:180, height:3, borderRadius:2, background:'#161b2e', overflow:'hidden' }}>
+                        <div style={{ height:'100%', background:'linear-gradient(90deg, transparent, #3da88e, transparent)', backgroundSize:'400px 100%', animation:'shimmer 1s linear infinite' }} />
+                      </div>
+                      <span style={{ fontFamily:MONO, fontSize:10, color:'#3da88e', letterSpacing:'0.04em' }}>Redacting PHI…</span>
+                    </div>
+                  )}
+                  {phase === 'done' && (
+                    <div style={{ height:'100%', overflowY:'hidden', background:'#0d1117', fontFamily:MONO, fontSize:12, lineHeight:'19px', paddingTop:10, paddingBottom:4, animation:'fadeIn 0.4s ease' }}>
+                      {HL7_LINES.map((line, i) => {
+                        const sc = getSegClr(line.seg, T);
+                        return (
+                          <div key={i} style={{ display:'flex', paddingRight:20 }}>
+                            <span style={{ minWidth:36, paddingLeft:12, paddingRight:10, textAlign:'right', color:T.text3, fontSize:11, opacity:0.45, userSelect:'none', lineHeight:'19px', flexShrink:0 }}>{i+1}</span>
+                            <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1, lineHeight:'19px' }}>
+                              <span style={{ color:sc.text, fontWeight:600 }}>{line.seg}</span>
+                              <span style={{ color:T.text3 }}>|</span>
+                              <span style={{ color:T.text2 }}>{line.rest.slice(1)}</span>
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Tokens pane */}
+              <div style={{ flex:1, display:'flex', flexDirection:'column', minHeight:0 }}>
+                <div style={{ height:34, flexShrink:0, display:'flex', alignItems:'center', gap:9, padding:'0 14px', background:T.surface, borderBottom:`1px solid ${T.border}` }}>
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={T.text3} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
+                    <rect x="1" y="5.5" width="3" height="2" rx="0.5"/>
+                    <rect x="9" y="2.5" width="3" height="2" rx="0.5"/>
+                    <rect x="9" y="8.5" width="3" height="2" rx="0.5"/>
+                    <path d="M4 6.5h2V3.5H9"/><path d="M6 6.5V9.5H9"/>
+                  </svg>
+                  <span style={{ fontFamily:SANS, fontSize:12, fontWeight:500, color:T.text2 }}>Tokens</span>
+                  {hasDone && <span style={{ marginLeft:'auto', fontFamily:MONO, fontSize:10, color:T.text3, animation:'fadeIn 0.4s ease' }}>1 segment with PHI · 5 clean</span>}
+                </div>
+                <div style={{ flex:1, minHeight:0, overflowY:'auto', fontFamily:MONO }}>
+                  {!hasDone && (
+                    <div style={{ padding:24, fontFamily:SANS, fontSize:12, color:T.text3, fontStyle:'italic' }}>Paste content to see the tokenized tree.</div>
+                  )}
+                  {hasDone && (() => {
+                    const phiNodes = TREE_NODES.filter(n => n.expanded && n.children?.length);
+                    const cleanNodes = TREE_NODES.filter(n => !n.expanded || !n.children?.length);
+                    let rowIndex = 0;
+                    return (
+                      <>
+                        {phiNodes.map((node, ni) => {
+                          const phiChildren = node.children.filter(c => c.redaction);
+                          return (
+                            <div key={ni}>
+                              {/* Branch header */}
+                              {(() => { const ri = rowIndex++; return (
+                                <div style={{ display:'flex', alignItems:'center', gap:8, paddingLeft:12, paddingRight:14, height:28, background:T.surface, borderBottom:`1px solid ${T.border}`, opacity: ri < visibleRows ? 1 : 0, animation: ri < visibleRows ? `rowIn 0.2s ${ri*0.05}s ease both` : 'none' }}>
+                                  <span style={{ fontSize:7, color:T.text3, width:10, transform:'rotate(90deg)', display:'inline-block', flexShrink:0 }}>▶</span>
+                                  <span style={{ fontFamily:MONO, fontSize:10, fontWeight:600, padding:'2px 7px', borderRadius:4, background:T.blueSoft, color:T.blue, border:`1px solid ${T.blueBorder}`, flexShrink:0 }}>{node.path}</span>
+                                  <span style={{ fontFamily:SANS, fontSize:12, color:T.text, fontWeight:500, flex:1 }}>{node.label}</span>
+                                  <span style={{ fontSize:10, color:T.text3, fontStyle:'italic' }}>({phiChildren.length} PHI)</span>
+                                </div>
+                              ); })()}
+                              {/* Children */}
+                              {phiChildren.map((child, ci) => {
+                                const cc = getCatClr(child.redaction.category);
+                                const ri = rowIndex++;
+                                return (
+                                  <div key={ci} style={{ display:'flex', alignItems:'center', gap:7, paddingLeft:32, paddingRight:14, height:28, borderBottom:`1px solid ${T.border}`, opacity: ri < visibleRows ? 1 : 0, animation: ri < visibleRows ? `rowIn 0.2s ${ri*0.06}s ease both` : 'none' }}>
+                                    <span style={{ fontFamily:MONO, fontSize:10, padding:'1px 6px', borderRadius:3, background:cc.bg, color:cc.text, border:`1px solid ${cc.border}`, flexShrink:0 }}>{child.path}</span>
+                                    <span style={{ fontFamily:MONO, fontSize:8, padding:'1px 5px', borderRadius:8, background:cc.bg, color:cc.text, border:`1px solid ${cc.border}`, flexShrink:0, textTransform:'uppercase', letterSpacing:'0.04em' }}>{child.redaction.category}</span>
+                                    <span style={{ fontFamily:MONO, fontSize:11, color: child.value ? T.text : T.text3, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontStyle: child.value ? 'normal' : 'italic', fontWeight: child.value ? 500 : 400 }}>
+                                      {child.value || (child.label === '[removed]' ? '[removed]' : '[scrubbed]')}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                        {/* Clean segments summary */}
+                        {visibleRows > phiNodes.length + phiNodes.reduce((s,n)=>s+(n.children?.filter(c=>c.redaction).length||0),0) && (
+                          <div style={{ display:'flex', alignItems:'center', gap:8, paddingLeft:12, paddingRight:14, height:28, animation:'rowIn 0.2s ease both' }}>
+                            <span style={{ width:10, flexShrink:0 }} />
+                            <span style={{ fontFamily:MONO, fontSize:10, color:T.text3, fontStyle:'italic' }}>5 segments with no findings —</span>
+                            <span style={{ fontFamily:MONO, fontSize:10, color:T.text3 }}>MSH, PV1, ORC, OBR, OBX</span>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+
+            {/* Status bar */}
+            <footer style={{ height:28, flexShrink:0, padding:'0 14px', display:'flex', alignItems:'center', gap:12, borderTop:`1px solid ${T.border}`, background:'#111524', fontFamily:MONO, fontSize:10, color:T.text3 }}>
+              <span title="View redaction policy" onClick={onPolicyClick} style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'2px 10px 2px 8px', borderRadius:10, background:T.accentSoft, color:T.accent, border:`1px solid ${T.accentBorder}`, fontWeight:600, letterSpacing:'0.04em', textTransform:'uppercase', fontSize:9, cursor:'pointer' }}>
+                <span style={{ width:6, height:6, borderRadius:'50%', background:T.accent, display:'inline-block', flexShrink:0, boxShadow:`0 0 5px ${T.accent}`, animation:'pulse 2.4s ease-in-out infinite' }} />
+                PHI mode: ON
+                <span style={{ fontSize:8, fontWeight:400, letterSpacing:0, textTransform:'none', opacity:0.75, marginLeft:1 }}>· policy ↗</span>
+              </span>
+              {hasDone && <span style={{ color:T.text3, animation:'fadeIn 0.4s ease' }}>hl7v2</span>}
+            </footer>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Root ────────────────────────────────────────────────────────────────
+    function App() {
+      const [screen, setScreen] = useState('intro');
+      const [showPolicy, setShowPolicy] = useState(false);
+      return (
+        <div style={{ height:'100%' }}>
+          {showPolicy && <PhiPolicyModal onClose={() => setShowPolicy(false)} />}
+          {screen === 'intro'
+            ? <IntroScreen onEnter={() => setScreen('app')} />
+            : <ScratchpadApp onPolicyClick={() => setShowPolicy(true)} />
+          }
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+
+  <template id="__bundler_thumbnail">
+    <svg viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
+      <rect width="120" height="80" fill="#0b0e18"/>
+      <circle cx="60" cy="35" r="20" fill="none" stroke="rgba(61,168,142,0.15)" strokeWidth="40"/>
+      <rect x="42" y="28" width="16" height="16" rx="3" fill="rgba(61,168,142,0.15)" stroke="rgba(61,168,142,0.4)" strokeWidth="1"/>
+      <text x="50" y="40" fontFamily="monospace" fontSize="8" fill="#3da88e" fontWeight="bold" textAnchor="middle">p7</text>
+      <text x="60" y="62" fontFamily="sans-serif" fontSize="9" fill="#9aa5c3" textAnchor="middle">HL7 Scratchpad</text>
+    </svg>
+  </template>
+</body>
+</html>
