@@ -79,6 +79,14 @@ export function ScratchpadView() {
 
   const findings = redactState.status === "ok" ? redactState.result.findings : NO_FINDINGS;
 
+  // Segment-level PHI tally for the Tokens pane label. A segment "has PHI" if
+  // any direct child carries a redaction.
+  const treeNodes = redactState.status === "ok" ? redactState.result.tree.nodes : [];
+  const phiSegmentCount = treeNodes.filter((n) =>
+    (n.children ?? []).some((c) => c.redaction !== undefined),
+  ).length;
+  const cleanSegmentCount = treeNodes.length - phiSegmentCount;
+
   // Custom Ctrl+V: prevents raw PHI from ever appearing in the editor by
   // redacting clipboard text before inserting. Image clipboard items are
   // detected and routed to a Phase 6 stub for future OCR. Failures surface
@@ -204,7 +212,20 @@ export function ScratchpadView() {
         <div className="scratchpad-panes">
           <section className="scratchpad-pane scratchpad-pane-paste">
             <div className="scratchpad-pane-label">
-              <span className="pane-label-stripe pane-label-stripe-paste" />
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 13 13"
+                fill="none"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ flexShrink: 0, stroke: "var(--text-3)" }}
+              >
+                <path d="M3 2.5h4.5L9 4v6.5a.5.5 0 01-.5.5h-5.5a.5.5 0 01-.5-.5v-8a.5.5 0 01.5-.5z" />
+                <path d="M7.5 2.5V4H9" />
+                <path d="M4.5 6h4M4.5 7.5h3" />
+              </svg>
               <span className="pane-label-text">Paste</span>
               <span className="pane-label-hint">text now · screenshots in Phase 6</span>
             </div>
@@ -224,11 +245,26 @@ export function ScratchpadView() {
 
           <section className="scratchpad-pane scratchpad-pane-tree">
             <div className="scratchpad-pane-label">
-              <span className="pane-label-stripe pane-label-stripe-tree" />
-              <span className="pane-label-text">Tokenized values</span>
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 13 13"
+                fill="none"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ flexShrink: 0, stroke: "var(--text-3)" }}
+              >
+                <rect x="1" y="5.5" width="3" height="2" rx="0.5" />
+                <rect x="9" y="2.5" width="3" height="2" rx="0.5" />
+                <rect x="9" y="8.5" width="3" height="2" rx="0.5" />
+                <path d="M4 6.5h2V3.5H9" />
+                <path d="M6 6.5V9.5H9" />
+              </svg>
+              <span className="pane-label-text">Tokens</span>
               {redactState.status === "ok" && (
                 <span className="pane-label-meta">
-                  {redactState.result.tree.nodes.length} segment{redactState.result.tree.nodes.length === 1 ? "" : "s"}
+                  {phiSegmentCount} segment{phiSegmentCount === 1 ? "" : "s"} with PHI · {cleanSegmentCount} clean
                 </span>
               )}
             </div>
