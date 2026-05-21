@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { createEngine } from "@paste7/core";
-import type { Engine, Finding, Format, RedactResult } from "@paste7/core";
+import type { Engine, Format, RedactResult } from "@paste7/core";
 import type { editor as MonacoEditor } from "monaco-editor";
 import { Editor, monaco } from "../shared/monaco.js";
 import { PhiPolicyModal } from "../shared/PhiPolicyModal.js";
-import { FindingsPanel } from "./FindingsPanel.js";
 import { TokenTreeView } from "./TokenTreeView.js";
-
-const NO_FINDINGS: ReadonlyArray<Finding> = [];
 
 type FormatChoice = Format | "auto";
 
@@ -76,8 +73,6 @@ export function ScratchpadView() {
       cancelled = true;
     };
   }, [debouncedContent, engine, formatChoice]);
-
-  const findings = redactState.status === "ok" ? redactState.result.findings : NO_FINDINGS;
 
   // Segment-level PHI tally for the Tokens pane label. A segment "has PHI" if
   // any direct child carries a redaction.
@@ -283,8 +278,6 @@ export function ScratchpadView() {
             </div>
           </section>
         </div>
-
-        <FindingsPanel findings={findings} />
       </div>
 
       {showPolicy && <PhiPolicyModal onClose={() => setShowPolicy(false)} />}
