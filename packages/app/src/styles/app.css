@@ -51,8 +51,8 @@
   --t-med:  0.15s;
 
   /* ── Typography ───────────────────────────────────────────────────────── */
-  --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: Consolas, "IBM Plex Mono", Menlo, "Courier New", monospace;
+  --font-sans: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, "IBM Plex Mono", Menlo, monospace;
 
   --fs-micro: 10.5px;
   --fs-xs:    10px;

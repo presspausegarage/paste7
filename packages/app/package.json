@@ -13,8 +13,10 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@paste7/core": "*",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/outfit": "^5.2.8",
     "@monaco-editor/react": "^4.6.0",
+    "@paste7/core": "*",
     "@tauri-apps/api": "^2.1.1",
     "@tauri-apps/plugin-dialog": "^2.7.0",
     "monaco-editor": "^0.52.0",
