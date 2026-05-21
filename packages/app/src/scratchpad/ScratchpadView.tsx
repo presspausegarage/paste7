@@ -41,7 +41,6 @@ export function ScratchpadView() {
   const debouncedContent = useDebouncedValue(content, 250);
   const [redactState, setRedactState] = useState<RedactState>({ status: "idle" });
   const [formatChoice, setFormatChoice] = useState<FormatChoice>("auto");
-  const [toast, setToast] = useState<{ kind: "ok" | "warn" | "info"; text: string } | null>(null);
   const [showPolicy, setShowPolicy] = useState(false);
 
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
@@ -80,15 +79,11 @@ export function ScratchpadView() {
 
   const findings = redactState.status === "ok" ? redactState.result.findings : NO_FINDINGS;
 
-  const showToast = (kind: "ok" | "warn" | "info", text: string) => {
-    setToast({ kind, text });
-    window.setTimeout(() => setToast(null), 2400);
-  };
-
   // Custom Ctrl+V: prevents raw PHI from ever appearing in the editor by
   // redacting clipboard text before inserting. Image clipboard items are
-  // detected and routed to a Phase 6 stub for future OCR; for now just
-  // surfaces a "coming soon" notice so the user knows the wire exists.
+  // detected and routed to a Phase 6 stub for future OCR. Failures surface
+  // through redactState (rendered in the tokens pane) — the status-bar toast
+  // was removed in the 2026-05-21 design uplift.
   const handleCustomPaste = async () => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -106,7 +101,10 @@ export function ScratchpadView() {
       for (const item of clipboardItems) {
         const imageType = item.types.find((t) => t.startsWith("image/"));
         if (imageType !== undefined) {
-          showToast("info", "Image paste detected — OCR coming in Phase 6.");
+          setRedactState({
+            status: "error",
+            message: "Image paste isn't wired up yet — screenshot OCR arrives in Phase 6.",
+          });
           return;
         }
       }
@@ -118,7 +116,7 @@ export function ScratchpadView() {
       text = await navigator.clipboard.readText();
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      showToast("warn", `clipboard read failed: ${message}`);
+      setRedactState({ status: "error", message: `Clipboard read failed: ${message}` });
       return;
     }
     if (text === "") return;
@@ -131,7 +129,7 @@ export function ScratchpadView() {
       result = await engineRef.current.redact(text, opts);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      showToast("warn", `paste blocked: ${message}`);
+      setRedactState({ status: "error", message: `Paste blocked: ${message}` });
       return;
     }
 
@@ -143,7 +141,8 @@ export function ScratchpadView() {
         forceMoveMarkers: true,
       },
     ]);
-    showToast("ok", `pasted · ${result.findings.length} redaction${result.findings.length === 1 ? "" : "s"}`);
+    // Success is silent — the editor onChange fires the debounced redact,
+    // which refreshes the tokens pane within ~250ms.
   };
 
   const onEditorMount = (editor: MonacoEditor.IStandaloneCodeEditor) => {
@@ -161,14 +160,12 @@ export function ScratchpadView() {
   const copyRedacted = async () => {
     if (content === "") return;
     await navigator.clipboard.writeText(content);
-    showToast("ok", "copied redacted");
   };
 
   const clearAll = () => {
     setContent("");
     setRedactState({ status: "idle" });
     engine.reset();
-    showToast("info", "cleared session");
   };
 
   return (
@@ -176,30 +173,10 @@ export function ScratchpadView() {
       <header className="scratchpad-header">
         <div className="scratchpad-title">
           <span className="scratchpad-title-text">Scratchpad</span>
-          <span className="scratchpad-subtitle">paste-and-redact</span>
         </div>
         <div className="scratchpad-toolbar">
-          <label className="format-select-label">
-            Format
-            <select
-              className="format-select"
-              value={formatChoice}
-              onChange={(e) => setFormatChoice(e.target.value as FormatChoice)}
-            >
-              {FORMAT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </label>
+          <FormatSelect value={formatChoice} onChange={setFormatChoice} />
           <FormatBadge state={redactState} choice={formatChoice} />
-          <button
-            type="button"
-            className="phi-policy-trigger"
-            onClick={() => setShowPolicy(true)}
-            title="Show what each PHI category does and the redaction strategy applied"
-          >
-            Policy
-          </button>
           <div className="copy-group" role="group" aria-label="Actions">
             <button
               type="button"
@@ -277,16 +254,16 @@ export function ScratchpadView() {
       {showPolicy && <PhiPolicyModal onClose={() => setShowPolicy(false)} />}
 
       <footer className="scratchpad-statusbar">
-        <span className="phi-badge" title="PHI redaction is always on; pasted content stays in memory.">
+        <button
+          type="button"
+          className="phi-badge"
+          onClick={() => setShowPolicy(true)}
+          title="View PHI redaction policy"
+        >
           <span className="phi-dot" />
           PHI mode: ON
-        </span>
-        <StatusDetail state={redactState} />
-        {toast && (
-          <span className={`scratchpad-statusbar-toast scratchpad-statusbar-toast-${toast.kind}`}>
-            {toast.text}
-          </span>
-        )}
+          <span className="phi-badge-policy">· policy ↗</span>
+        </button>
       </footer>
     </div>
   );
@@ -315,23 +292,55 @@ function EmptyState() {
   );
 }
 
-function StatusDetail({ state }: { state: RedactState }) {
-  if (state.status === "idle") return null;
-  if (state.status === "redacting") {
-    return <span className="scratchpad-statusbar-detail">redacting…</span>;
-  }
-  if (state.status === "error") {
-    return (
-      <span className="scratchpad-statusbar-detail scratchpad-statusbar-error" title={state.message}>
-        {state.message}
-      </span>
-    );
-  }
-  const { format, findings } = state.result;
+// Custom format dropdown — replaces the native <select>. Closes on outside
+// click or option select. Typed against FormatChoice rather than raw strings.
+function FormatSelect({
+  value,
+  onChange,
+}: {
+  value: FormatChoice;
+  onChange: (v: FormatChoice) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const current = FORMAT_OPTIONS.find((o) => o.value === value) ?? FORMAT_OPTIONS[0]!;
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [open]);
+
   return (
-    <span className="scratchpad-statusbar-detail">
-      {format} · {findings.length} finding{findings.length === 1 ? "" : "s"}
-    </span>
+    <div className="format-select" ref={ref}>
+      <button
+        type="button"
+        className="format-select-btn"
+        onClick={() => setOpen((o) => !o)}
+      >
+        {current.label}
+        <span className={"format-select-chevron" + (open ? " is-open" : "")}>▼</span>
+      </button>
+      {open && (
+        <div className="format-select-dropdown">
+          {FORMAT_OPTIONS.map((opt) => (
+            <div
+              key={opt.value}
+              className={"format-select-option" + (opt.value === value ? " is-active" : "")}
+              onClick={() => {
+                onChange(opt.value);
+                setOpen(false);
+              }}
+            >
+              {opt.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
