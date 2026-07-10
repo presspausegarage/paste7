@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { createEngine } from "@paste7/core";
-import type { Engine, Format, RedactResult } from "@paste7/core";
+import { createEngine, secret } from "@paste7/core";
+import type { Engine, Format, RedactResult, SecretValue } from "@paste7/core";
 import type { editor as MonacoEditor } from "monaco-editor";
 import { Editor, monaco } from "../shared/monaco.js";
 import { PhiPolicyModal } from "../shared/PhiPolicyModal.js";
@@ -34,7 +34,11 @@ const EDITOR_OPTIONS = {
 
 export function ScratchpadView() {
   const [engine] = useState<Engine>(() => createEngine());
-  const [content, setContent] = useState<string>("");
+  // Wrapped in SecretValue: this is the redacted message text living in the
+  // paste editor. Never persisted anywhere today, but the wrapper makes it
+  // a compile error for a future edit to wire it into settings/autosave by
+  // accident -- see @paste7/core's secret.ts.
+  const [content, setContent] = useState<SecretValue<string>>(() => secret(""));
   const debouncedContent = useDebouncedValue(content, 250);
   const [redactState, setRedactState] = useState<RedactState>({ status: "idle" });
   const [formatChoice, setFormatChoice] = useState<FormatChoice>("auto");
@@ -51,7 +55,7 @@ export function ScratchpadView() {
   // because the custom Ctrl+V handler redacts before insertion). Re-redacting
   // already-redacted content is a no-op — bindings cache stabilizes fakes.
   useEffect(() => {
-    if (debouncedContent.trim() === "") {
+    if (debouncedContent.reveal().trim() === "") {
       setRedactState({ status: "idle" });
       return;
     }
@@ -59,7 +63,7 @@ export function ScratchpadView() {
     setRedactState({ status: "redacting" });
     const options = formatChoice === "auto" ? undefined : { format: formatChoice };
     engine
-      .redact(debouncedContent, options)
+      .redact(debouncedContent.reveal(), options)
       .then((result) => {
         if (cancelled) return;
         setRedactState({ status: "ok", result });
@@ -73,6 +77,8 @@ export function ScratchpadView() {
       cancelled = true;
     };
   }, [debouncedContent, engine, formatChoice]);
+
+  const isEmpty = content.reveal() === "";
 
   // Segment-level PHI tally for the Tokens pane label. A segment "has PHI" if
   // any direct child carries a redaction.
@@ -161,12 +167,14 @@ export function ScratchpadView() {
   };
 
   const copyRedacted = async () => {
-    if (content === "") return;
-    await navigator.clipboard.writeText(content);
+    if (content.reveal() === "") return;
+    // Explicit reveal for an explicit, user-initiated clipboard write --
+    // a disclosed risk (see docs/threat-model.md), not an accidental one.
+    await navigator.clipboard.writeText(content.reveal());
   };
 
   const clearAll = () => {
-    setContent("");
+    setContent(secret(""));
     setRedactState({ status: "idle" });
     engine.reset();
   };
@@ -185,7 +193,7 @@ export function ScratchpadView() {
               type="button"
               className="copy-btn copy-btn-primary"
               onClick={copyRedacted}
-              disabled={content === ""}
+              disabled={isEmpty}
               title="Copy the redacted content to clipboard"
             >
               Copy
@@ -194,7 +202,7 @@ export function ScratchpadView() {
               type="button"
               className="copy-btn copy-btn-secondary"
               onClick={clearAll}
-              disabled={content === ""}
+              disabled={isEmpty}
               title="Clear the editor and reset identity bindings"
             >
               Clear
@@ -229,12 +237,12 @@ export function ScratchpadView() {
                 height="100%"
                 language="plaintext"
                 theme="vs-dark"
-                value={content}
+                value={content.reveal()}
                 onMount={onEditorMount}
-                onChange={(value) => setContent(value ?? "")}
+                onChange={(value) => setContent(secret(value ?? ""))}
                 options={EDITOR_OPTIONS}
               />
-              {content === "" && <EmptyState />}
+              {isEmpty && <EmptyState />}
             </div>
           </section>
 
