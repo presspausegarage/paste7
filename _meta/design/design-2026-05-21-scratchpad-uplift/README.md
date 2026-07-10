@@ -1,3 +1,10 @@
+---
+type: resource
+tags:
+  - type/resource
+  - topic/design
+---
+
 # Handoff: Scratchpad UI Uplift (Direction B)
 
 ## Overview
