@@ -47,6 +47,10 @@ export type {
 
 export { DEFAULT_STRATEGIES } from "./types.js";
 
+// Persistence-boundary guard (Phase 4 deliverable) -- see module doc.
+export { SecretValue, secret } from "./secret.js";
+export type { Persistable } from "./secret.js";
+
 // DICOM SR header redaction surface (Phase 3).
 export { createDicomRedactor } from "./dicom/redactor.js";
 export {

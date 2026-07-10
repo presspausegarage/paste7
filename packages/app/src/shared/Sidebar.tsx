@@ -7,6 +7,43 @@ interface Props {
   onSelect: (id: WorkflowId) => void;
 }
 
+// Inline SVG icons per workflow. `stroke="currentColor"` so the icon picks up
+// the sidebar item's color states (text-3 idle, text-2 hover, accent active).
+const ICONS: Record<WorkflowId, JSX.Element> = {
+  scratchpad: (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="10" height="11" rx="1.5" />
+      <path d="M6 3V2a2 2 0 014 0v1" />
+      <path d="M5.5 7.5h5M5.5 10h3.5" />
+    </svg>
+  ),
+  dicom: (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 3a1 1 0 011-1h5l3 3v8a1 1 0 01-1 1H4a1 1 0 01-1-1V3z" />
+      <path d="M9 2v3.5H12" />
+      <path d="M8 7.5v4M6 9.5h4" />
+    </svg>
+  ),
+};
+
 export function Sidebar({ active, onSelect }: Props) {
   const [hoveredId, setHoveredId] = useState<WorkflowId | null>(null);
 
@@ -67,7 +104,7 @@ function SidebarItem({
       title={item.label}
       aria-label={item.label}
     >
-      <span className="sidebar-item-glyph">{item.glyph}</span>
+      <span className="sidebar-item-glyph">{ICONS[item.id]}</span>
       {isHovered && (
         <div className="sidebar-tooltip" role="tooltip">
           <span className="sidebar-tooltip-label">{item.label}</span>

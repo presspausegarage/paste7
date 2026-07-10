@@ -51,8 +51,8 @@
   --t-med:  0.15s;
 
   /* ── Typography ───────────────────────────────────────────────────────── */
-  --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: Consolas, "IBM Plex Mono", Menlo, "Courier New", monospace;
+  --font-sans: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, "IBM Plex Mono", Menlo, monospace;
 
   --fs-micro: 10.5px;
   --fs-xs:    10px;
@@ -207,7 +207,6 @@ button {
   border: none;
   border-left: 2px solid transparent;
   color: var(--text-3);
-  font-size: 18px;
   cursor: pointer;
   padding: 0;
   transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast);
@@ -225,8 +224,10 @@ button {
 }
 
 .sidebar-item-glyph {
-  display: block;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
 }
 
 .sidebar-tooltip {
@@ -433,39 +434,79 @@ button {
   gap: 12px;
 }
 
-.format-select-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-3);
+.format-select {
+  position: relative;
+  display: inline-block;
 }
 
-.format-select {
+.format-select-btn {
   font-family: var(--font-mono);
   font-size: 11px;
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--text);
-  background: var(--surface);
+  color: var(--text-2);
+  background: var(--surface-2);
   border: 1px solid var(--border-2);
   border-radius: 5px;
-  padding: 4px 8px;
+  padding: 4px 26px 4px 10px;
   cursor: pointer;
-  transition: border-color 0.12s, color 0.12s;
+  position: relative;
+  white-space: nowrap;
+  transition: border-color var(--t-fast), color var(--t-fast);
 }
 
-.format-select:hover {
+.format-select-btn:hover {
   border-color: var(--text-3);
+  color: var(--text);
 }
 
-.format-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-soft);
+.format-select-chevron {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%) rotate(0deg);
+  transition: transform 0.15s;
+  font-size: 7px;
+  color: var(--text-3);
+  display: inline-block;
+}
+
+.format-select-chevron.is-open {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.format-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  z-index: 100;
+  min-width: 140px;
+}
+
+.format-select-option {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 7px 14px;
+  color: var(--text-2);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.1s;
+}
+
+.format-select-option:last-child {
+  border-bottom: none;
+}
+
+.format-select-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.format-select-option.is-active {
+  color: var(--accent);
+  background: rgba(61, 168, 142, 0.1);
 }
 
 .format-badge {
@@ -526,12 +567,14 @@ button {
 }
 
 .copy-btn-primary {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 600;
+  border-right-color: rgba(0, 0, 0, 0.18);
 }
 
 .copy-btn-primary:hover:not(:disabled) {
-  background: rgba(61, 168, 142, 0.2);
+  background: var(--accent-hover);
 }
 
 .copy-btn-secondary:hover:not(:disabled) {
@@ -542,40 +585,6 @@ button {
 .copy-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-.scratchpad-statusbar-toast {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  padding: 3px 10px;
-  border-radius: 4px;
-  animation: toast-fade 2.4s ease-out;
-}
-
-.scratchpad-statusbar-toast-ok {
-  color: var(--accent);
-  background: var(--accent-soft);
-  border: 1px solid rgba(61, 168, 142, 0.3);
-}
-
-.scratchpad-statusbar-toast-warn {
-  color: var(--amber);
-  background: rgba(216, 138, 58, 0.12);
-  border: 1px solid rgba(216, 138, 58, 0.3);
-}
-
-.scratchpad-statusbar-toast-info {
-  color: var(--blue);
-  background: var(--blue-soft);
-  border: 1px solid rgba(92, 134, 214, 0.3);
-}
-
-@keyframes toast-fade {
-  0% { opacity: 0; transform: translateX(4px); }
-  6% { opacity: 1; transform: translateX(0); }
-  88% { opacity: 1; }
-  100% { opacity: 0; }
 }
 
 .scratchpad-body {
@@ -609,54 +618,35 @@ button {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 14px 7px 0;
-  background: linear-gradient(180deg, var(--bg-2) 0%, var(--surface) 100%);
+  gap: 9px;
+  padding: 0 14px;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
-  min-height: 30px;
-}
-
-.pane-label-stripe {
-  align-self: stretch;
-  width: 3px;
-  flex-shrink: 0;
-  border-radius: 0 2px 2px 0;
-}
-
-.pane-label-stripe-paste {
-  background: var(--amber);
-  box-shadow: 0 0 12px rgba(216, 138, 58, 0.4);
-}
-
-.pane-label-stripe-tree {
-  background: var(--accent);
-  box-shadow: 0 0 12px rgba(61, 168, 142, 0.4);
+  min-height: 34px;
 }
 
 .pane-label-text {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text);
+  color: var(--text-2);
+  text-transform: none;
+  letter-spacing: -0.01em;
 }
 
 .pane-label-hint {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 10px;
   color: var(--text-3);
   font-style: italic;
-  letter-spacing: 0;
-  text-transform: none;
 }
 
 .pane-label-meta {
   margin-left: auto;
-  margin-right: 14px;
+  margin-right: 0;
   font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--text-2);
+  color: var(--text-3);
 }
 
 .scratchpad-pane-label-row {
@@ -1020,24 +1010,6 @@ button {
   letter-spacing: 0.04em;
 }
 
-.phi-policy-trigger {
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-2);
-  background: transparent;
-  color: var(--text-3);
-  cursor: pointer;
-  transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
-}
-
-.phi-policy-trigger:hover {
-  color: var(--accent);
-  border-color: rgba(61, 168, 142, 0.3);
-  background: var(--accent-soft);
-}
-
 .scratchpad-statusbar {
   flex-shrink: 0;
   height: 28px;
@@ -1064,18 +1036,6 @@ button {
   pointer-events: none;
 }
 
-.scratchpad-statusbar-detail {
-  color: var(--text-2);
-}
-
-.scratchpad-statusbar-error {
-  color: var(--red);
-  max-width: 70%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
 .phi-badge {
   display: inline-flex;
   align-items: center;
@@ -1091,6 +1051,22 @@ button {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   box-shadow: inset 0 0 12px rgba(61, 168, 142, 0.08);
+  cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast);
+}
+
+.phi-badge:hover {
+  background: rgba(61, 168, 142, 0.22);
+  border-color: rgba(61, 168, 142, 0.5);
+}
+
+.phi-badge-policy {
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.75;
+  margin-left: 2px;
 }
 
 .phi-dot {
@@ -1342,8 +1318,9 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-top: 2px;
-  padding-bottom: 2px;
+  min-height: 28px;
+  padding-top: 4px;
+  padding-bottom: 4px;
   padding-right: 12px;
   min-width: 0;
 }
@@ -1356,8 +1333,9 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-top: 3px;
-  padding-bottom: 3px;
+  min-height: 28px;
+  padding-top: 4px;
+  padding-bottom: 4px;
   padding-right: 12px;
   cursor: pointer;
   list-style: none;
@@ -1390,6 +1368,8 @@ button {
   margin-left: 18px;
 }
 
+/* Outlined badge style — transparent fill, colored 1.5px border + text.
+   Applies uniformly: structural kind chips and redacted-category chips. */
 .tree-path {
   flex-shrink: 0;
   font-family: var(--font-mono);
@@ -1397,9 +1377,9 @@ button {
   letter-spacing: 0.01em;
   padding: 1px 7px;
   border-radius: 3px;
-  background: var(--surface-2);
+  background: transparent;
   color: var(--text-2);
-  border: 1px solid var(--border-2);
+  border: 1.5px solid var(--border-2);
   max-width: 22ch;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1408,9 +1388,8 @@ button {
 
 .tree-path-segment,
 .tree-path-element {
-  background: var(--blue-soft);
   color: var(--blue);
-  border-color: rgba(92, 134, 214, 0.3);
+  border-color: rgba(92, 134, 214, 0.35);
   font-weight: 500;
 }
 
@@ -1422,56 +1401,47 @@ button {
 .tree-path-component,
 .tree-path-subcomponent {
   color: var(--text-2);
-  background: var(--surface);
 }
 
 .tree-path-attribute {
-  background: rgba(216, 138, 58, 0.08);
   color: var(--amber);
-  border-color: rgba(216, 138, 58, 0.25);
+  border-color: rgba(216, 138, 58, 0.35);
 }
 
 /* Path chip when the node is redacted — adopts the PHI category color so
-   structural location and PHI category read at a glance. The smaller
-   category badge to the right of the label still surfaces the category
-   text for screen readers / colorblind users. */
+   structural location and PHI category read at a glance. */
 .tree-path-redacted {
   font-weight: 500;
 }
 
 .tree-path-cat-name,
 .tree-path-cat-id {
-  background: var(--blue-soft);
   color: var(--blue);
-  border-color: rgba(92, 134, 214, 0.3);
+  border-color: rgba(92, 134, 214, 0.35);
 }
 
 .tree-path-cat-address,
 .tree-path-cat-geo,
 .tree-path-cat-date {
-  background: var(--amber-soft);
   color: var(--amber);
-  border-color: rgba(216, 138, 58, 0.3);
+  border-color: rgba(216, 138, 58, 0.35);
 }
 
 .tree-path-cat-phone,
 .tree-path-cat-email,
 .tree-path-cat-url {
-  background: var(--accent-soft);
   color: var(--accent);
-  border-color: rgba(61, 168, 142, 0.3);
+  border-color: rgba(61, 168, 142, 0.35);
 }
 
 .tree-path-cat-biometric,
 .tree-path-cat-photo {
-  background: var(--red-soft);
   color: var(--red);
-  border-color: rgba(217, 83, 79, 0.3);
+  border-color: rgba(217, 83, 79, 0.35);
 }
 
 .tree-path-cat-device-id,
 .tree-path-cat-free-text {
-  background: var(--surface-2);
   color: var(--text-3);
   border-color: var(--border-2);
 }
@@ -1495,6 +1465,33 @@ button {
 }
 .tree-childcount::after {
   content: ")";
+}
+
+/* Footer summary row — clean (no-PHI) segments collapse here. */
+.tree-row-hidden-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px 0 32px;
+  height: 28px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tree-hidden-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  font-style: italic;
+  flex-shrink: 0;
+}
+
+.tree-hidden-paths {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tree-cat {
