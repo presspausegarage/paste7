@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "core-baseline",
+  "description": "Core window/app/event/path/webview permissions needed by every workflow in the single 'main' window (window chrome, IPC events, path resolution, and the webview handle DICOM SR uses for drag-drop). Deliberately narrower than the core:default bundle, which also grants core:image, core:menu, core:resources, and core:tray defaults — unused (no tray icon, no custom menu, no runtime image manipulation, no Tauri Resource API calls anywhere in the app).",
+  "windows": ["main"],
+  "permissions": [
+    "core:window:default",
+    "core:app:default",
+    "core:event:default",
+    "core:path:default",
+    "core:webview:default"
+  ]
+}

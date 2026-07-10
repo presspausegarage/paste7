@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "scratchpad-workflow",
+  "description": "Scratchpad paste-and-redact workflow. Needs no Tauri plugin grants beyond capabilities/core.json — redaction runs entirely in @paste7/core JS (no IPC calls at all), and both Copy actions use navigator.clipboard.writeText (a browser API), not the Tauri clipboard-manager plugin. Kept as an explicit file with an empty permission list, rather than omitted, so this workflow's footprint stays visible and self-documenting; a future feature such as the paste-from-clipboard hotkey noted in docs/HANDOFF.md's Phase 2 polish backlog would add its scoped grant (e.g. clipboard-manager:allow-read-text) here.",
+  "windows": ["main"],
+  "permissions": []
+}

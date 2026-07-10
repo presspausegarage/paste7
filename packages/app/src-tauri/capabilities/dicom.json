@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "dicom-workflow",
+  "description": "DICOM SR workflow. Needs dialog:allow-open only — not dialog:default, which also grants the save/message/ask/confirm dialog types this workflow never calls — for the native '.dcm' open-file picker (packages/app/src/dicom/dicom-fs.ts). The two app-defined Rust commands this workflow relies on (read_dicom_file, write_redacted_dicom) are custom #[tauri::command] functions, not plugin commands: Tauri allows an app's own commands to all windows by default regardless of capability grants (confirmed against Tauri v2 docs while writing this file), so they are not scoped here. Their actual scoping is the absolute-path + extension validation on the Rust side (src/lib.rs) and the derived-destination-only write path — see docs/threat-model.md section 3.3 for the residual gap that leaves open (no verification the path came from a real dialog selection).",
+  "windows": ["main"],
+  "permissions": ["dialog:allow-open"]
+}
