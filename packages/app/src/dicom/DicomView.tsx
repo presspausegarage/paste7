@@ -17,7 +17,7 @@ type ViewState =
   | { kind: "ready"; path: string; bytes: Uint8Array; result: DicomRedactResult }
   | { kind: "error"; path?: string; message: string };
 
-interface RetainFlags {
+export interface RetainFlags {
   dates: boolean;
   uids: boolean;
   deviceIds: boolean;
@@ -25,9 +25,28 @@ interface RetainFlags {
 
 const NO_RETAIN: RetainFlags = { dates: false, uids: false, deviceIds: false };
 
-export function DicomView() {
+export interface DicomViewProps {
+  /** Persisted retain sub-profile selection (DPAPI-encrypted settings), if any. */
+  initialRetain?: RetainFlags;
+  /** Fired whenever the retain selection changes, so the caller can persist it. */
+  onRetainChange?: (next: RetainFlags) => void;
+}
+
+export function DicomView({ initialRetain, onRetainChange }: DicomViewProps = {}) {
   const [state, setState] = useState<ViewState>({ kind: "idle" });
-  const [retain, setRetain] = useState<RetainFlags>(NO_RETAIN);
+  const [retain, setRetain] = useState<RetainFlags>(initialRetain ?? NO_RETAIN);
+
+  // Report retain changes upward for persistence, skipping the initial
+  // mount (which just echoes `initialRetain` back) to avoid a redundant
+  // settings write every time this view remounts (tab switch unmounts it).
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    onRetainChange?.(retain);
+  }, [retain, onRetainChange]);
   const [exportState, setExportState] = useState<{
     kind: "idle" | "writing" | "ok" | "error";
     message?: string;
