@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { WORKFLOWS } from "./workflows.js";
 import type { WorkflowId, WorkflowMeta } from "./workflows.js";
+import { AboutModal } from "./AboutModal.js";
 
 interface Props {
   active: WorkflowId;
@@ -46,6 +47,7 @@ const ICONS: Record<WorkflowId, JSX.Element> = {
 
 export function Sidebar({ active, onSelect }: Props) {
   const [hoveredId, setHoveredId] = useState<WorkflowId | null>(null);
+  const [showAbout, setShowAbout] = useState(false);
 
   return (
     <aside className="sidebar">
@@ -70,9 +72,18 @@ export function Sidebar({ active, onSelect }: Props) {
       </nav>
 
       <div className="sidebar-footer">
-        <span className="sidebar-version">v0</span>
+        <button
+          type="button"
+          className="sidebar-about-btn"
+          onClick={() => setShowAbout(true)}
+          title="About paste7"
+        >
+          <span className="sidebar-version">v0</span>
+        </button>
         <span className="sidebar-ai-badge" title="AI-assisted build">AI</span>
       </div>
+
+      {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
     </aside>
   );
 }

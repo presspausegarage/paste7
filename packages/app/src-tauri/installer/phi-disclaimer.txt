@@ -1,0 +1,5 @@
+paste7 performs best-effort de-identification for developer debugging and QA workflows. It is not a certified HIPAA Safe Harbor tool. Do not rely on it as a sole de-identification layer for data you intend to share or publish.
+
+The redaction rule packs are anchored on HIPAA Safe Harbor's 18 identifiers. Jurisdictions outside the US (GDPR, UK DPA, PIPEDA, etc.) define health-data privacy under different terms and may have requirements this tool does not specifically address.
+
+DICOM scope is Structured Report (SR) header tags only -- no other modalities, no SR ContentSequence redaction, no pixel-data redaction of any kind. The tool will reject non-SR DICOM objects on file-drop.

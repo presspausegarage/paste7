@@ -31,6 +31,7 @@
     "targets": ["nsis"],
     "category": "Productivity",
     "copyright": "Copyright (c) 2026 paste7 contributors",
+    "licenseFile": "installer/phi-disclaimer.txt",
     "shortDescription": "Healthcare interop scratchpad with PHI auto-redaction.",
     "longDescription": "Lightweight desktop scratchpad for inspecting healthcare interop messages. Paste HL7 v2 or v3, C-CDA, or FHIR (JSON or XML) and see them tokenized with patient identifiers redacted in real time. Drop DICOM files for header inspection and sanitized export. In-memory only; message content never written to disk.",
     "icon": [
