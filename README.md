@@ -1,5 +1,7 @@
 # paste7
 
+[![release](https://github.com/presspausegarage/paste7/actions/workflows/release.yml/badge.svg)](https://github.com/presspausegarage/paste7/actions/workflows/release.yml)
+
 Lightweight desktop scratchpad for inspecting healthcare interop messages with PHI auto-redaction.
 
 Paste an HL7 v2, HL7 v3, C-CDA, or FHIR message and see it tokenized with patient identifiers redacted in real time. Drop a DICOM Structured Report and inspect headers before exporting a sanitized copy. Drop a screenshot of an HL7 v2 message from a viewer tool and have its text extracted, normalized, and redacted. In-memory only — message content is never written to disk.
@@ -23,9 +25,10 @@ PHI rule packs anchor on HIPAA Safe Harbor's 18-identifier list (HL7 family) and
 ## Distribution
 
 - **License**: MIT, public GitHub.
-- **Install**: per-user NSIS installer for Windows. No admin rights, no UAC. Installs to `%LOCALAPPDATA%\Programs\`.
+- **Install**: per-user NSIS installer for Windows. No admin rights, no UAC. Installs to `%LOCALAPPDATA%\Programs\`. Download the [latest release](https://github.com/presspausegarage/paste7/releases/latest); verify the download against the published `.sha256` checksum.
 - **Target**: Windows 10 21H2+ / Windows 11. WebView2 preinstalled.
-- **Updates**: Tauri built-in updater, signed releases via GitHub Releases.
+- **Unsigned build**: code signing is deferred for the pilot phase. First install shows a one-time SmartScreen "More info → Run anyway" prompt — this is a missing OS-level trust signal, not a sign the binary is unsafe.
+- **Updates**: Tauri built-in updater (planned, not yet wired), signed releases via GitHub Releases.
 
 ## Development
 

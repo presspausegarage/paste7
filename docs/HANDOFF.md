@@ -9,7 +9,9 @@ Handoff notes for picking this project back up.
 - **What**: Tauri 2 + React + Monaco desktop scratchpad. Three workflows: Scratchpad (paste-and-redact for HL7 v2 / v3 / CDA / FHIR), DICOM SR (file-drop SR-header redaction; SR-only after the 2026-05-01 rescope), and HL7-viewer OCR (image paste/drop → Windows.Media.Ocr → HL7 normalization → existing HL7 v2 walker; Phase 6).
 - **Where**: [github.com/presspausegarage/paste7](https://github.com/presspausegarage/paste7) — public, MIT.
 - **State at handoff (2026-05-01)**: Rescoped from `health-integrate`. PS360 Template Mapper + String Gen + Tool Launcher + Terminal stripped. Tauri/Vite/Monaco scaffold survives. **Phase 1 engine complete (7/7 steps)**: API, format detector, walkers (hl7v2/json/xml), identity pool + redactor, bundled rule packs, label dictionary, property-based fuzz tests. **Phase 2 Scratchpad UI complete (6/6 steps)**: split Monaco panes, debounced engine.redact() wiring, findings side panel, raw/tree toggle, format chrome, copy guards, in-memory invariant lint. **Phase 3 DICOM SR complete (4/4 steps)**: SOP class family detection, SR header rule pack (PS 3.15 BACP subset, ~67 tags), dcmjs-backed walker with UID re-map cache, retain sub-profile gates (dates / UIDs / device-IDs), file-drop + header table + redact-and-export UI, scoped Rust write command (`write_redacted_dicom` enforces `*.redacted.dcm` destination), in-memory lint extended to `dicom/**`. 251 tests green (158 example + 34 property + 14 SOP + 4 redactor surface + 23 rule pack + 22 redactor end-to-end).
-- **Next**: Tauri runtime smoke test of Phase 2 + Phase 3 (the only path that hasn't been exercised this session). Then Phase 4 — security hardening (per-workflow capability scoping, branded `SecretValue` types, DPAPI for settings).
+- **Update (2026-07-11)**: **Phase 4 security hardening complete** (5/5 deliverables) — threat model doc, per-workflow capability scoping (`core.json`/`dicom.json`/`scratchpad.json`), DPAPI-encrypted settings persistence, branded `SecretValue` TS type, in-memory invariant lint. PR [#13](https://github.com/presspausegarage/paste7/pull/13) merged 2026-07-10. **Phase 5 distribution started**: PHI disclaimer wired into both the NSIS installer license page and a new app About box — PR [#14](https://github.com/presspausegarage/paste7/pull/14) open, not yet merged.
+- **Update (2026-07-12)**: Two more Phase 5 deliverables shipped. **NSIS packaging polish**: version bumped 0.0.0 → 0.1.0 across all five version-bearing files (root/core/app `package.json`, `Cargo.toml`, `tauri.conf.json`), `bundle.publisher` added, `scripts/bump-version.mjs` added to keep them in sync on future releases. **GitHub Releases automation**: `.github/workflows/release.yml` builds on `v*` tag push via `npm run dist`, gates on typecheck + core tests + in-memory lint + a tag/version consistency check, publishes a SHA-256 checksum alongside the installer, and attaches both to a GitHub Release (auto-marked prerelease when the tag has a suffix, e.g. `v0.1.0-alpha.1`). Also extended `dependabot.yml` to cover the previously-unmonitored `cargo` and `github-actions` ecosystems. **Tauri updater wiring is still not done** — and the earlier framing that it was blocked on the deferred code-signing decision doesn't hold up: per [`_meta/security/code-signing.md`](../../_meta/security/code-signing.md), the updater's signing keypair is generated locally and is independent of OS-level code signing, so updates work fine unsigned. It was really just unscheduled, and lacked a stable release-artifact endpoint to point at — this update's GitHub Releases automation now provides one.
+- **Next**: Tauri updater wiring (`tauri signer generate` for the updater keypair, `plugins.updater` config pointing at the GitHub Releases endpoint, `updater:default` capability grant) — no longer blocked on anything, just not yet scheduled. PR #14 (disclaimer) still needs a merge.
 
 ---
 
@@ -208,9 +210,9 @@ Bulk mode (drop a folder, redact all SR files in one pass with a skip-summary) i
 - **Pane-layout user setting**: PLAN.md mentions "Side-by-side or stacked layout (user setting)." Currently stacked-only; switching would cost ~20 lines of CSS + a toggle.
 - **Findings rule/path filters**: panel currently filters by category only. Rule and path filters land in the same code path as category chips; trivial extension.
 
-### Phase 4 — Security hardening, Phase 5 — Distribution
+### Phase 4 — Security hardening ✅ shipped, Phase 5 — Distribution (in progress)
 
-Per PLAN.md.
+Phase 4 spec in PLAN.md; all 5 deliverables shipped, see the 2026-07-11 update above. Phase 5: PHI disclaimer (PR #14, open), NSIS packaging polish + GitHub Releases automation (see 2026-07-12 update above) shipped. Tauri updater wiring is the one remaining Phase 5 item — not blocked, just not yet scheduled (see Open questions #1 below for the corrected reasoning).
 
 ### Phase 6 — HL7 viewer screenshot OCR
 
@@ -231,6 +233,8 @@ Per PLAN.md.
 | In-memory invariant lint | `npm run lint` |
 | Launch dev app | `npm run dev` |
 | Build NSIS installer | `npm run dist` |
+| Bump version (all 5 files) | `npm run version:bump -- <semver>` |
+| Cut a release | bump version, commit, `git tag v<semver>`, `git push --tags` → `.github/workflows/release.yml` builds + publishes |
 | Core engine source | `packages/core/src/` |
 | Scratchpad UI | `packages/app/src/scratchpad/` |
 | DICOM UI | `packages/app/src/dicom/` |
@@ -244,7 +248,7 @@ Per PLAN.md.
 
 ## Open questions
 
-1. **Code signing path** — deferred 2026-05-01. Unsigned pilot; revisit at v1.0 or first enterprise ask. Trusted Signing was briefly chosen and reversed (cost not justifiable pre-revenue). See [`_areas/security/code-signing.md`](../../_areas/security/code-signing.md) for the preserved alternatives table.
+1. **Code signing path** — deferred 2026-05-01. Unsigned pilot; revisit at v1.0 or first enterprise ask. Trusted Signing was briefly chosen and reversed (cost not justifiable pre-revenue). See [`_meta/security/code-signing.md`](../../_meta/security/code-signing.md) for the preserved alternatives table. **This does not block the Tauri updater** — its signing keypair is separate from OS code signing (see the 2026-07-12 HANDOFF update above); updater wiring is simply unscheduled.
 2. **DICOM library** — `dcmjs` (TS, in-WebView) chosen 2026-05-01 in Phase 3. SR-only scope made the in-WebView path the right fit; avoids extending the Tauri command surface to wrap DICOM parse/serialize.
 3. **Format detection ambiguity** — auto-detect with confidence + override (decided 2026-05-01 in Phase 2; toolbar shows detected format + confidence pct in auto mode, "forced" badge when overridden).
 4. **HL7 v3 messaging coverage** — only RIM paths shared with CDA, or full message-type catalog? (Current scope: shared paths only; full catalog deferred to user-driven.)
