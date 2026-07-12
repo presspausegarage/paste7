@@ -24,9 +24,6 @@ jobs:
         with:
           workspaces: packages/app/src-tauri
 
-      - name: Install dependencies
-        run: npm ci
-
       - name: Check tag matches tauri.conf.json version
         shell: pwsh
         run: |
@@ -38,6 +35,9 @@ jobs:
             exit 1
           }
           Write-Host "Tag '$tag' matches tauri.conf.json version '$confVersion'."
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Typecheck
         run: npm run typecheck
