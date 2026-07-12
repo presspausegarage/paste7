@@ -14,3 +14,25 @@ updates:
         update-types:
           - "minor"
           - "patch"
+  - package-ecosystem: "cargo"
+    assignees:
+      - "presspausegarage"
+    directory: "/packages/app/src-tauri"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+  - package-ecosystem: "github-actions"
+    assignees:
+      - "presspausegarage"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "chore(deps)"

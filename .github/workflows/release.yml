@@ -1,0 +1,83 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/app/src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check tag matches tauri.conf.json version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}" -replace '^v', ''
+          $tagVersionCore = ($tag -split '-', 2)[0]
+          $confVersion = (Get-Content packages/app/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if ($tagVersionCore -ne $confVersion) {
+            Write-Error "Tag version '$tagVersionCore' (from '$tag') does not match tauri.conf.json version '$confVersion'. Run 'npm run version:bump -- $tagVersionCore' and commit before tagging."
+            exit 1
+          }
+          Write-Host "Tag '$tag' matches tauri.conf.json version '$confVersion'."
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Core tests
+        run: npm test --workspace=@paste7/core
+
+      - name: In-memory invariant lint
+        run: npm run lint
+
+      - name: Build NSIS installer
+        run: npm run dist
+
+      - name: Compute SHA-256 checksum
+        shell: pwsh
+        run: |
+          $bundleDir = "packages/app/src-tauri/target/release/bundle/nsis"
+          $installer = Get-ChildItem -Path $bundleDir -Filter *.exe | Select-Object -First 1
+          if (-not $installer) {
+            Write-Error "No NSIS installer .exe found under $bundleDir"
+            exit 1
+          }
+          $hash = Get-FileHash -Algorithm SHA256 $installer.FullName
+          "$($hash.Hash)  $($installer.Name)" | Out-File -Encoding ascii "$($installer.FullName).sha256"
+          Write-Host "Built $($installer.Name) — SHA256 $($hash.Hash)"
+
+      - name: Determine prerelease flag
+        id: prerelease
+        shell: pwsh
+        run: |
+          $isPrerelease = "${{ github.ref_name }}" -match '-'
+          "value=$($isPrerelease.ToString().ToLower())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            packages/app/src-tauri/target/release/bundle/nsis/*.exe
+            packages/app/src-tauri/target/release/bundle/nsis/*.sha256
+          generate_release_notes: true
+          prerelease: ${{ steps.prerelease.outputs.value }}
+          body: |
+            Unsigned Windows installer (per-user NSIS, no admin rights required). Code signing is deferred for the pilot phase — first install shows a one-time SmartScreen "More info → Run anyway" prompt. Verify the download against the published `.sha256` checksum.
