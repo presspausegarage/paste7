@@ -1,6 +1,6 @@
 {
   "name": "paste7",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Lightweight desktop scratchpad for inspecting healthcare interop messages with PHI auto-redaction. Paste HL7 v2/v3, C-CDA, or FHIR; drop DICOM files; see redacted views in real time. In-memory only.",
   "license": "MIT",
