@@ -6,7 +6,7 @@ Lightweight desktop scratchpad for inspecting healthcare interop messages with P
 
 Paste an HL7 v2, HL7 v3, C-CDA, or FHIR message and see it tokenized with patient identifiers redacted in real time. Drop a DICOM Structured Report and inspect headers before exporting a sanitized copy. Drop a screenshot of an HL7 v2 message from a viewer tool and have its text extracted, normalized, and redacted. In-memory only — message content is never written to disk.
 
-**Status: pre-alpha.** Tauri 2 + Vite + React + Monaco scaffold present; PHI engine and views in active development. Not yet usable.
+**Status: pre-release.** Phase 4 (security hardening) complete; Phase 5 (distribution) in progress. No public release yet.
 
 ## Supported formats
 
