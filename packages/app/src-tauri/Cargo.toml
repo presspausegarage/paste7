@@ -1,6 +1,6 @@
 [package]
 name = "paste7-shell"
-version = "0.0.0"
+version = "0.1.0"
 description = "paste7 Tauri shell"
 authors = ["paste7 contributors"]
 edition = "2021"

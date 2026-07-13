@@ -1,6 +1,6 @@
 {
   "name": "paste7",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Lightweight desktop scratchpad for inspecting healthcare interop messages with PHI auto-redaction. Paste HL7 v2/v3, C-CDA, or FHIR; drop DICOM files; see redacted views in real time. In-memory only.",
   "license": "MIT",
@@ -16,7 +16,8 @@
     "sample:sr": "node scripts/generate-sample-sr.mjs",
     "tauri": "npm run tauri --workspace=@paste7/app --",
     "dev": "npm run tauri -- dev",
-    "dist": "npm run tauri -- build"
+    "dist": "npm run tauri -- build",
+    "version:bump": "node scripts/bump-version.mjs"
   },
   "engines": {
     "node": ">=20"
