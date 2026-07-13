@@ -16,7 +16,8 @@
     "sample:sr": "node scripts/generate-sample-sr.mjs",
     "tauri": "npm run tauri --workspace=@paste7/app --",
     "dev": "npm run tauri -- dev",
-    "dist": "npm run tauri -- build"
+    "dist": "npm run tauri -- build",
+    "version:bump": "node scripts/bump-version.mjs"
   },
   "engines": {
     "node": ">=20"
