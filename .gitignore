@@ -17,6 +17,8 @@ packages/app/src-tauri/icons/*.png
 packages/app/src-tauri/icons/android/
 packages/app/src-tauri/icons/ios/
 !packages/app/src-tauri/icons/README.md
+# icon.ico is required by the release build (bundle.icon + NSIS installerIcon)
+!packages/app/src-tauri/icons/icon.ico
 
 # Vite / build outputs
 packages/app/dist/

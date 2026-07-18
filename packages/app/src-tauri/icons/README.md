@@ -1,6 +1,6 @@
 # Icons
 
-Tauri bundle requires `icon.ico` in this directory to build the Windows installer. Not committed yet — placeholder step before the first production build.
+Tauri bundle requires `icon.ico` in this directory to build the Windows installer. `icon.ico` is committed (the release build fails without it — see `.gitignore` exception); the other generated sizes stay local-only since the bundle targets NSIS only. Current mark: lowercase "p7" in the app accent (`#3da88e`) on the app background (`#0b0e18`), generated 2026-07-17.
 
 **To generate**: use [tauricon](https://github.com/tauri-apps/tauri-icon) or the built-in Tauri CLI:
 
