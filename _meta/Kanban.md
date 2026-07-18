@@ -18,6 +18,7 @@ tags:
 ## Active
 
 - Phase 5: PHI disclaimer in NSIS installer license page + new app About box -- `f0f6d74`, PR [#14](https://github.com/presspausegarage/paste7/pull/14) open, not yet merged
+- IP/moonlighting gate cleared 2026-07-15 -- Lunit offer letter + 2025 handbook contain no such clause; People Team confirmed no confidentiality/IP-assignment/non-compete agreement exists in Andy's employee file. Publishing/demoing paste7 is unblocked. First-release tag (`release.yml`) is the 2026-07-17 action.
 
 ## Blocked
 

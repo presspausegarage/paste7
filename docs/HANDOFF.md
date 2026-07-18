@@ -161,7 +161,7 @@ All seven steps shipped (see commit table above). 192 tests cover the engine con
 
 ### Phase 2 — Scratchpad view ✅ shipped
 
-All six steps shipped (see Phase 2 commit table). Engine wired, split Monaco panes, findings panel with filters, tokenized tree, format chrome, copy guards, in-memory lint. Runtime UI not yet exercised in Tauri dev — typecheck + lint + core tests are green; first launch verification is the next-action smoke test. See **Phase 2 polish backlog** below for items the rough-order spec scoped down.
+All six steps shipped (see Phase 2 commit table). Engine wired, split Monaco panes, findings panel with filters, tokenized tree, format chrome, copy guards, in-memory lint. **Update (2026-07-15): first-launch smoke test passed** — `npm run dev` compiled clean (Rust shell + Vite), the app process launched and stayed stable, and the frontend dev server served correctly. This line was stale (written before Phase 4/5 shipped); the doc gap is now closed, not just the underlying build. See **Phase 2 polish backlog** below for items the rough-order spec scoped down.
 
 ### Phase 3 — DICOM SR ✅ shipped
 
