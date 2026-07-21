@@ -11,7 +11,6 @@ Thumbs.db
 # Tauri
 packages/app/src-tauri/target/
 packages/app/src-tauri/gen/
-packages/app/src-tauri/icons/*.ico
 packages/app/src-tauri/icons/*.icns
 packages/app/src-tauri/icons/*.png
 packages/app/src-tauri/icons/android/
