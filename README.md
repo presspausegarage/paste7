@@ -4,9 +4,9 @@
 
 Lightweight desktop scratchpad for inspecting healthcare interop messages with PHI auto-redaction.
 
-Paste an HL7 v2, HL7 v3, C-CDA, or FHIR message and see it tokenized with patient identifiers redacted in real time. Drop a DICOM Structured Report and inspect headers before exporting a sanitized copy. Drop a screenshot of an HL7 v2 message from a viewer tool and have its text extracted, normalized, and redacted. In-memory only — message content is never written to disk.
+Paste an HL7 v2, HL7 v3, C-CDA, or FHIR message and see it tokenized with patient identifiers redacted in real time. Drop a DICOM Structured Report and inspect headers before exporting a sanitized copy. A planned Phase 6 workflow will ingest screenshots of HL7 v2 messages from viewer tools. In-memory only — message content is never written to disk.
 
-**Status: pre-alpha.** Tauri 2 + Vite + React + Monaco scaffold present; PHI engine and views in active development. Not yet usable.
+**Status: v0.1.0 released.** The public Windows installer and SHA-256 checksum are available from [GitHub Releases](https://github.com/presspausegarage/paste7/releases/tag/v0.1.0). Phases 1–4 are complete; Phase 5 distribution is complete except for the planned Tauri built-in updater. Phase 6 OCR and Phase 7 MCP remain future work.
 
 ## Supported formats
 
