@@ -17,7 +17,7 @@ tags:
 
 ## Active
 
-- Phase 5: PHI disclaimer in NSIS installer license page + new app About box -- `f0f6d74`, PR [#14](https://github.com/presspausegarage/paste7/pull/14) open, not yet merged
+_None._
 
 ## Blocked
 
@@ -25,13 +25,18 @@ tags:
 
 **Complete**
 
+- **v0.1.0 released** — public Windows release published 2026-07-18 from `main` commit `12dc645`: `paste7_0.1.0_x64-setup.exe` (3.9 MB) + `.sha256`, release workflow green
+- **IP/moonlighting gate cleared** — People Team confirmed 2026-07-15 that no IP-assignment, confidentiality, non-compete, or moonlighting agreement exists in Andy's employee file; publishing/demoing paste7 is unblocked
+- **Phase 5 disclaimer/About surfaces** — `f0f6d74`, PR [#14](https://github.com/presspausegarage/paste7/pull/14) merged 2026-07-17; ships in v0.1.0
+- **First-launch smoke test** — passed 2026-07-15 (`npm run dev`: Rust + Vite compiled, app launched and remained stable)
+
 - Phase 4 security hardening
   - Threat model doc (`docs/threat-model.md`) -- `4ed592d`
   - Tauri capability scoping split into per-workflow grants (`core.json` / `dicom.json` / `scratchpad.json`, replacing the broad `default.json`; drops unused shell/clipboard-manager/fs plugins) -- `e699929`
   - DPAPI-encrypted settings persistence (window size, default workflow, DICOM retain sub-profiles; never message content) -- `073b97b`
   - Branded `SecretValue` TS type wired through the settings-persistence boundary and the scratchpad's live redacted-text state -- `8fd2e62`
   - In-memory invariant lint (`npm run lint:in-memory`) -- pre-existing, still green
-- Phase 5 distribution (partial)
+- Phase 5 distribution (updater remains)
   - NSIS packaging polish: version 0.0.0 -> 0.1.0 across all version-bearing files, `bundle.publisher` added, `scripts/bump-version.mjs` version-sync helper
   - GitHub Releases automation: `.github/workflows/release.yml` builds on tag push, gates on typecheck/tests/lint + a tag-version consistency check, publishes SHA-256 checksums, attaches to a GitHub Release
 
