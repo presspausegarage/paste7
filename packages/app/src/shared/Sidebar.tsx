@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import { WORKFLOWS } from "./workflows.js";
 import type { WorkflowId, WorkflowMeta } from "./workflows.js";
 import { AboutModal } from "./AboutModal.js";
