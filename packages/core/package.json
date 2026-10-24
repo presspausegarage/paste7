@@ -17,8 +17,8 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "dcmjs": "^0.52.0",
-    "fast-xml-parser": "^5.11.1",
+    "dcmjs": "^0.52.2",
+    "fast-xml-parser": "^5.11.2",
     "hl7-dictionary": "^1.0.1"
   },
   "devDependencies": {
